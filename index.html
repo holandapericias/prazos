@@ -404,6 +404,7 @@ function buildAlertRow(a){
 
 // ----- LISTA (atuais/passados) -----
 const TIPO_ORDER=['Quesitos e Assistentes','Contratar Assistente','Enviar Pré-laudo','Perícia','Manifestação ao Laudo'];
+let SORT_ATUAIS='tipo';
 const STATUS_ASS_OPTS=['Não contratado','Contratado','Confirmado','Não confirmado','Compareceu','Não compareceu'];
 const TIPO_PER_OPTS=['Medicina','Engenharia'];
 const PASSADOS={de:'',ate:'',loaded:''};
@@ -416,6 +417,12 @@ function renderLista(opts){
     const now=new Date();now.setHours(0,0,0,0);
     items=items.filter(r=>new Date(r.fields[F.p.data])>=now);
     sec.innerHTML='<h2>Prazos Atuais <span class="cnt">'+items.length+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(de hoje em diante)</span></h2>';
+    const tb=document.createElement('div');tb.className='toolbar';
+    tb.innerHTML='<span>Agrupar por:</span>'+
+      '<select id="sortSel"><option value="tipo"'+(SORT_ATUAIS==='tipo'?' selected':'')+'>Tipo de prazo</option>'+
+      '<option value="data"'+(SORT_ATUAIS==='data'?' selected':'')+'>Data</option></select>';
+    sec.appendChild(tb);
+    tb.querySelector('#sortSel').onchange=e=>{SORT_ATUAIS=e.target.value;render();};
   }else{
     if(!PASSADOS.de){const d=new Date();d.setDate(d.getDate()-30);PASSADOS.de=d.toISOString().slice(0,10);}
     if(!PASSADOS.ate){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.ate=d.toISOString().slice(0,10);}
@@ -441,21 +448,37 @@ function renderLista(opts){
 
   if(!items.length){sec.innerHTML+='<div class="empty">Nenhum prazo encontrado.</div>';return sec;}
 
-  // Agrupa por tipo (ordem do Airtable)
+  // Ordenação: Atuais pode ser "tipo" (grupos) ou "data" (cronológico agrupado por dia)
   const groups={};
-  items.forEach(r=>{const t=firstTipo(r)||'Outro';(groups[t]=groups[t]||[]).push(r);});
-  const orderedKeys=TIPO_ORDER.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!TIPO_ORDER.includes(k)));
+  const orderBy=(mode==='atuais'&&SORT_ATUAIS==='data')?'data':'tipo';
+  if(orderBy==='data'){
+    items.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
+    items.forEach(r=>{
+      const d=new Date(r.fields[F.p.data]);
+      const k=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      (groups[k]=groups[k]||[]).push(r);
+    });
+  }else{
+    items.forEach(r=>{const t=firstTipo(r)||'Outro';(groups[t]=groups[t]||[]).push(r);});
+  }
+  const orderedKeys=orderBy==='data'
+    ?Object.keys(groups)
+    :TIPO_ORDER.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!TIPO_ORDER.includes(k)));
   orderedKeys.forEach(k=>{
     const list=groups[k];
     list.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
     const h=document.createElement('div');h.className='group-head';
-    h.innerHTML='<span class="tag t-'+tipoClass(k)+'">'+escHtml(k)+'</span> <span style="color:#6b7c8c;font-size:12px;margin-left:6px">('+list.length+')</span>';
+    if(orderBy==='data'){
+      h.innerHTML=escHtml(k)+' <span style="color:#6b7c8c;font-size:12px;margin-left:6px">('+list.length+')</span>';
+    }else{
+      h.innerHTML='<span class="tag t-'+tipoClass(k)+'">'+escHtml(k)+'</span> <span style="color:#6b7c8c;font-size:12px;margin-left:6px">('+list.length+')</span>';
+    }
     sec.appendChild(h);
-    if(k==='Perícia'){
+    if(k==='Perícia'&&orderBy==='tipo'){
       list.forEach(r=>sec.appendChild(buildPericiaBox(r)));
     }else{
       const grid=document.createElement('div');grid.className='card-list';
-      list.forEach(r=>grid.appendChild(buildPrazoCard(r)));
+      list.forEach(r=>grid.appendChild(firstTipo(r)==='Perícia'?buildPericiaBox(r):buildPrazoCard(r)));
       sec.appendChild(grid);
     }
   });
