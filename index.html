@@ -327,8 +327,7 @@ function render(){
   else if(CURRENT==='alertas')c.appendChild(renderAlertasPage());
 }
 function updateAlertasBadge(){
-  const ignored=getIgnored();
-  const n=[...DATA.pje,...DATA.gmail].filter(a=>!ignored.includes(a.id)).length;
+  const n=getActiveAlerts().length;
   const b=document.getElementById('alertasBadge');
   if(!b)return;
   if(n>0){b.textContent=n;b.style.display='inline-block';}else b.style.display='none';
@@ -339,12 +338,47 @@ const IGNORED_KEY='prazos_ignored_alerts';
 function getIgnored(){try{return JSON.parse(localStorage.getItem(IGNORED_KEY)||'[]');}catch(e){return[];}}
 function ignoreAlert(id){const a=getIgnored();if(!a.includes(id))a.push(id);localStorage.setItem(IGNORED_KEY,JSON.stringify(a));render();}
 
+// Constrói mapa processo -> casoId (a partir de DATA.casos)
+function buildProcessoIndex(){
+  const m={};
+  DATA.casos.forEach(c=>{
+    const p=(c.fields[F.c.processo]||'').replace(/\D/g,'');
+    if(p)m[p]=c.id;
+  });
+  return m;
+}
+// Retorna true se já existe prazo ativo desse tipo para o caso
+function hasActivePrazo(casoId,tipoSugerido){
+  if(!casoId)return false;
+  return DATA.prazos.some(r=>{
+    const link=r.fields[F.p.caso]||[];
+    if(!link.includes(casoId))return false;
+    if(!tipoSugerido)return true;
+    const t=r.fields[F.p.tipo]||[];
+    const tipos=Array.isArray(t)?t:[t];
+    return tipos.includes(tipoSugerido);
+  });
+}
 function getActiveAlerts(){
   const ignored=getIgnored();
-  return [
+  const procIdx=buildProcessoIndex();
+  const all=[
     ...DATA.pje.map(a=>Object.assign({_src:'PJe'},a)),
     ...DATA.gmail.map(a=>Object.assign({_src:'Gmail'},a))
-  ].filter(a=>!ignored.includes(a.id));
+  ];
+  return all.filter(a=>{
+    if(ignored.includes(a.id))return false;
+    // Resolver casoId via numeroProcesso se não vier direto
+    let casoId=a.casoSugerido||a.casoId||'';
+    if(!casoId&&a.numeroProcesso){
+      const key=a.numeroProcesso.replace(/\D/g,'');
+      casoId=procIdx[key]||'';
+    }
+    a._casoId=casoId;
+    // Dedup: se já tem prazo ativo do mesmo tipo pro caso, esconde
+    if(hasActivePrazo(casoId,a.tipoSugerido))return false;
+    return true;
+  });
 }
 function renderAlertsBanner(){
   const wrap=document.createElement('div');
