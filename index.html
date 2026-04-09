@@ -994,6 +994,7 @@ function buildPosPericiaCard(r){
       '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
         (realizada?'<span class="tag t-manif">✓ Realizada</span>':'')+
         (viaWpp?'<span class="tag t-quesitos" title="Confirmado pelo assistente via WhatsApp">📱 via WhatsApp</span>':'')+
+        (cobs.length?(cobs.some(c=>c.fields[F.cob.pago])?'<span class="tag t-manif">💰 Pago</span>':'<span class="tag t-pericia">💸 Cobrança solicitada</span>'):'')+
       '</div>'+
     '</div>'+
     '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px">'+
@@ -1073,19 +1074,15 @@ function openCobrancaModal(prazoRec,existingCob){
   const tipopgAtual=cf[F.cob.tipopg]?(typeof cf[F.cob.tipopg]==='object'?cf[F.cob.tipopg].name:cf[F.cob.tipopg]):tipopgDefault;
   const assName=ass?(ass.fields[F.a.nome]||''):'';
   m.innerHTML='<h2>💸 '+(isEdit?'Editar Solicitação':'Solicitação de Pagamento')+'</h2>'+
-    '<div style="background:#f8fbfd;border-left:4px solid #00AEEF;padding:12px 14px;border-radius:6px;margin-bottom:16px">'+
-      '<div style="font-size:11px;color:#6b7c8c;text-transform:uppercase;font-weight:600">Assistente Técnico</div>'+
-      '<div style="font-size:16px;color:#003c56;font-weight:700;font-family:Barlow Condensed,sans-serif">'+escHtml(assName||'(não definido)')+'</div>'+
-      (ass?'<div style="font-size:11px;color:#6b7c8c;margin-top:2px">'+escHtml(ass.fields[F.a.phone]||'')+(ass.fields[F.a.email]?' · '+escHtml(ass.fields[F.a.email]):'')+'</div>':'')+
-      '<div style="font-size:11px;color:#6b7c8c;margin-top:6px">Caso: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
-    '</div>'+
+    '<div style="font-size:12px;color:#6b7c8c;margin-bottom:6px">Caso: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
     '<div class="fg">'+
+      '<div class="full"><label>Assistente Técnico</label><div id="cAssSlot"></div></div>'+
       '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
       '<div><label>Data Prevista</label><input type="date" id="fData" value="'+(cf[F.cob.dataPag]||hoje)+'"></div>'+
       '<div class="full"><label>Tipo</label><select id="fTipopg">'+
         tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+
       '</select></div>'+
-      '<div class="full"><label>Chave PIX'+(assPix&&!cf[F.cob.pix]?' <span style="color:#22a06b;font-weight:600;text-transform:none">✓ preenchida automaticamente</span>':'')+'</label><input type="text" id="fPix" value="'+escHtml(cf[F.cob.pix]||assPix)+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
+      '<div class="full"><label>Chave PIX <span id="pixHint" style="color:#22a06b;font-weight:600;text-transform:none;display:none">✓ preenchida automaticamente</span></label><input type="text" id="fPix" value="'+escHtml(cf[F.cob.pix]||assPix)+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
       '<div class="full"><label><input type="checkbox" id="fPago"'+(pago?' checked':'')+'> Já foi pago (marque só depois de confirmar o pagamento)</label></div>'+
     '</div>'+
     '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">'+(isEdit?'Salvar':'Registrar Solicitação')+'</button></div>';
@@ -1094,22 +1091,88 @@ function openCobrancaModal(prazoRec,existingCob){
   m.querySelector('#cl').onclick=close;
   bg.onclick=e=>{if(e.target===bg)close();};
   const msgEl=m.querySelector('.msg');
+
+  // Estado dinâmico do assistente selecionado
+  let currentAss=ass;
+  const pixInp=m.querySelector('#fPix');
+  const pixHint=m.querySelector('#pixHint');
+  const tipopgSel=m.querySelector('#fTipopg');
+  function refreshFromAssistente(newAss){
+    currentAss=newAss;
+    if(!newAss){pixInp.value='';pixHint.style.display='none';return;}
+    // Procura PIX salvo (no cadastro do assistente ou em cobranças anteriores)
+    const savedPix=lookupPixAssistente(newAss);
+    if(savedPix&&!pixInp.value){
+      pixInp.value=savedPix;
+      pixHint.style.display='inline';
+    }else if(savedPix){
+      pixHint.style.display='inline';
+    }else{
+      pixHint.style.display='none';
+    }
+    // Pré-preencher valor combinado se vazio
+    const valorInp=m.querySelector('#fValor');
+    if(!valorInp.value&&prazoRec.fields[F.p.valorAss]){
+      valorInp.value=prazoRec.fields[F.p.valorAss];
+    }
+  }
+  // Mostra hint se já veio com PIX preenchido auto
+  if(assPix&&!cf[F.cob.pix])pixHint.style.display='inline';
+  pixInp.oninput=()=>{pixHint.style.display='none';};
+
+  // Plugar componente de busca de assistente
+  const assSlot=m.querySelector('#cAssSlot');
+  const assSearch=buildAssistenteSearch({
+    currentId:ass?ass.id:'',
+    onPick:(newAss)=>{refreshFromAssistente(newAss);},
+    onClear:()=>{refreshFromAssistente(null);}
+  });
+  assSlot.appendChild(assSearch);
+
   m.querySelector('#sv').onclick=async()=>{
     const valor=parseFloat(m.querySelector('#fValor').value);
     if(isNaN(valor)||valor<=0){msgEl.textContent='Valor é obrigatório';msgEl.className='msg err';return;}
+    const pixVal=pixInp.value.trim();
+    const selectedAssId=assSearch.getValue()||(currentAss?currentAss.id:'');
+
+    // Auto-save PIX no cadastro do assistente se ele ainda não tem
+    if(selectedAssId&&pixVal){
+      const assRec=ASSIST_BY_ID[selectedAssId];
+      if(assRec&&!assRec.fields[F.a.pix]){
+        try{
+          await patchRecord(TBL.assist,selectedAssId,{[F.a.pix]:pixVal});
+          assRec.fields[F.a.pix]=pixVal;
+          toast('PIX salvo no cadastro do assistente','ok');
+        }catch(e){console.warn('PIX assist save failed',e);}
+      }
+    }
+
+    // Se assistente mudou, atualiza o link no prazo
+    const prazoAssIds=(prazoRec.fields[F.p.assistente]||[]);
+    if(selectedAssId&&!prazoAssIds.includes(selectedAssId)){
+      try{
+        await patchRecord(TBL.prazos,prazoRec.id,{[F.p.assistente]:[selectedAssId]});
+        prazoRec.fields[F.p.assistente]=[selectedAssId];
+      }catch(e){console.warn('prazo assist update failed',e);}
+    }else if(!selectedAssId&&prazoAssIds.length){
+      try{
+        await patchRecord(TBL.prazos,prazoRec.id,{[F.p.assistente]:[]});
+        prazoRec.fields[F.p.assistente]=[];
+      }catch(e){}
+    }
+
     const fields={};
     fields[F.cob.tipo]='Saída';
     fields[F.cob.categoria]='Custo Direto (Assistente)';
-    fields[F.cob.tipopg]=m.querySelector('#fTipopg').value;
+    fields[F.cob.tipopg]=tipopgSel.value;
     fields[F.cob.valorPag]=valor;
     fields[F.cob.dataPag]=m.querySelector('#fData').value;
-    const pix=m.querySelector('#fPix').value;
-    if(pix)fields[F.cob.pix]=pix;
+    if(pixVal)fields[F.cob.pix]=pixVal;
     fields[F.cob.pago]=m.querySelector('#fPago').checked;
     if(!isEdit){
       fields[F.cob.caso]=[casoId];
       fields[F.cob.prazos]=[prazoRec.id];
-      if(ass)fields[F.cob.assistente]=[ass.id];
+      if(selectedAssId)fields[F.cob.assistente]=[selectedAssId];
     }
     try{
       if(isEdit){
@@ -1117,7 +1180,7 @@ function openCobrancaModal(prazoRec,existingCob){
       }else{
         await createRecord(TBL.cob,fields);
       }
-      toast('Pagamento salvo','ok');close();loadData();
+      toast('Solicitação salva','ok');close();loadData();
     }catch(e){msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';}
   };
 }
