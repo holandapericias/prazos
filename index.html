@@ -41,9 +41,15 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .btn.gray{background:#6b7c8c}.btn.gray:hover{background:#55646f}
 .btn.sm{padding:5px 10px;font-size:12px}
 /* ===== Lista ===== */
-.card-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
-.prazo-card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-left:5px solid #00AEEF;transition:all .15s;position:relative}
-.prazo-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.card-list{display:flex;flex-direction:column;gap:10px}
+.prazo-card{background:#fff;border-radius:10px;padding:12px 16px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-left:5px solid #00AEEF;transition:all .15s;position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px}
+.prazo-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.prazo-card .row-main{flex:1;min-width:260px;display:flex;flex-direction:column;gap:2px}
+.prazo-card .row-checks{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}
+.prazo-card .row-act{display:flex;gap:6px;align-items:center}
+.btn.danger{background:#d64545}.btn.danger:hover{background:#a82929}
+.btn.iconbtn{background:none;color:#6b7c8c;padding:4px 8px}
+.btn.iconbtn:hover{color:#d64545;background:#fdecec}
 .prazo-card.pericia{border-left-color:#E8A838}
 .prazo-card.manif{border-left-color:#4CAF50}
 .prazo-card.prelaudo{border-left-color:#009688}
@@ -212,6 +218,13 @@ async function createRecord(table,fields){
   if(!r.ok){const t=await r.text();throw new Error('POST '+r.status+' '+t);}
   return r.json();
 }
+async function deleteRecord(table,id){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+encodeURIComponent(table)+'/'+id,{
+    method:'DELETE',headers:{Authorization:'Bearer '+TK}
+  });
+  if(!r.ok)throw new Error('DELETE '+r.status);
+  return r.json();
+}
 
 async function loadJSON(path){
   try{const r=await fetch(path+'?t='+Date.now());if(!r.ok)return{alerts:[]};return await r.json();}catch(e){return{alerts:[]};}
@@ -266,7 +279,11 @@ function tipoClass(tipo){return TIPO_CLASS[tipo]||'outro';}
 function firstTipo(rec){const v=rec.fields[F.p.tipo];if(!v)return null;return Array.isArray(v)?v[0]:v;}
 function fmtDate(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 function dayKey(iso){const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function daysUntil(iso){const d=new Date(iso);const now=new Date();return Math.floor((d-now)/86400000);}
+function daysUntil(iso){
+  const d=new Date(iso);const a=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const n=new Date();const b=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  return Math.round((a-b)/86400000);
+}
 function casoNome(rec){
   const link=rec.fields[F.p.caso];
   if(!link||!link.length)return'(sem caso)';
@@ -386,7 +403,9 @@ function buildAlertRow(a){
 }
 
 // ----- LISTA (atuais/passados) -----
-const TIPO_ORDER=['Perícia','Manifestação ao Laudo','Enviar Pré-laudo','Contratar Assistente','Quesitos e Assistentes'];
+const TIPO_ORDER=['Quesitos e Assistentes','Contratar Assistente','Enviar Pré-laudo','Perícia','Manifestação ao Laudo'];
+const STATUS_ASS_OPTS=['Não contratado','Contratado','Confirmado','Não confirmado','Compareceu','Não compareceu'];
+const TIPO_PER_OPTS=['Medicina','Engenharia'];
 const PASSADOS={de:'',ate:'',loaded:''};
 function renderLista(opts){
   const mode=opts.mode;
@@ -451,41 +470,51 @@ function buildPrazoCard(r){
   const du=data?daysUntil(data):null;
   const urgent=du!=null&&du>=0&&du<=3;
   const card=document.createElement('div');card.className='prazo-card '+cls;
-  const local=r.fields[F.p.local]||r.fields[F.p.cidade]||'';
-  const obs=r.fields[F.p.obs]||'';
-  const ass=assistFromPrazo(r);
-  const statusAss=r.fields[F.p.statusAss]||'';
-  card.innerHTML='<div class="head"><div class="caso">'+escHtml(casoNome(r))+'</div>'+
-    '<span class="tag t-'+cls+(urgent?' urg':'')+'">'+escHtml(tipo)+'</span></div>'+
-    '<div class="when">📅 '+escHtml(fmtDate(data))+(du!=null?' <span style="color:'+(du<0?'#a82929':du<=3?'#d64545':'#6b7c8c')+'">('+(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d')+')</span>':'')+'</div>'+
-    '<div class="meta">'+
-      (casoProcesso(r)?'<div><b>Processo:</b> '+escHtml(casoProcesso(r))+'</div>':'')+
-      (local?'<div><b>Local:</b> '+escHtml(local)+'</div>':'')+
-      (ass?'<div><b>Assistente:</b> '+escHtml(ass.fields[F.a.nome]||'')+'</div>':'')+
-      (statusAss?'<div><b>Status Ass.:</b> '+escHtml(statusAss)+'</div>':'')+
-      (obs?'<div><b>Obs:</b> '+escHtml(obs)+'</div>':'')+
+  const proc=casoProcesso(r);
+  const due=du!=null?(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d'):'';
+  const dueColor=du==null?'#6b7c8c':(du<0?'#a82929':du<=3?'#d64545':'#005F88');
+  card.innerHTML='<div class="row-main">'+
+      '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+        '<span class="tag t-'+cls+(urgent?' urg':'')+'">'+escHtml(tipo)+'</span>'+
+        '<b style="color:#003c56;font-family:Barlow Condensed,sans-serif;font-size:16px">'+escHtml(casoNome(r))+'</b>'+
+      '</div>'+
+      '<div style="font-size:12px;color:#6b7c8c;margin-top:2px">'+
+        (proc?escHtml(proc)+' · ':'')+
+        '📅 <b style="color:'+dueColor+'">'+escHtml(fmtDate(data))+'</b>'+
+        (due?' <span style="color:'+dueColor+'">('+due+')</span>':'')+
+      '</div>'+
     '</div>'+
-    '<div class="checks">'+
+    '<div class="row-checks">'+
       chk(r,F.p.preLaudo,'Pré-Laudo')+
-      chk(r,F.p.confAss,'Conf. Assist.')+
+      chk(r,F.p.confAss,'Conf.')+
       chk(r,F.p.relato,'Relato')+
+    '</div>'+
+    '<div class="row-act">'+
+      '<button class="btn iconbtn" title="Excluir prazo">🗑</button>'+
     '</div>';
-  // bind checkboxes
   card.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.onchange=async()=>{
-      const fid=cb.dataset.fid;const recId=cb.dataset.rec;const val=cb.checked;
-      try{
-        await patchRecord(TBL.prazos,recId,{[fid]:val});
-        const rec=DATA.prazos.find(x=>x.id===recId);if(rec)rec.fields[fid]=val;
-        toast('Salvo','ok');
-      }catch(e){cb.checked=!val;toast('Erro: '+e.message,'err');}
+      const fid=cb.dataset.fid,recId=cb.dataset.rec,val=cb.checked;
+      try{await patchRecord(TBL.prazos,recId,{[fid]:val});r.fields[fid]=val;toast('Salvo','ok');}
+      catch(e){cb.checked=!val;toast('Erro: '+e.message,'err');}
     };
   });
+  card.querySelector('.iconbtn').onclick=()=>confirmDelete(r);
   return card;
 }
 function chk(r,fid,label){
   const on=!!r.fields[fid];
   return '<label><input type="checkbox" data-rec="'+r.id+'" data-fid="'+fid+'"'+(on?' checked':'')+'> '+label+'</label>';
+}
+async function confirmDelete(r){
+  if(!confirm('Excluir este prazo?\n\n'+casoNome(r)+'\n'+(firstTipo(r)||'')+' — '+fmtDate(r.fields[F.p.data])+'\n\nEsta ação não pode ser desfeita.'))return;
+  try{
+    await deleteRecord(TBL.prazos,r.id);
+    DATA.prazos=DATA.prazos.filter(x=>x.id!==r.id);
+    if(DATA.prazosPassados)DATA.prazosPassados=DATA.prazosPassados.filter(x=>x.id!==r.id);
+    toast('Prazo excluído','ok');
+    render();
+  }catch(e){toast('Erro ao excluir: '+e.message,'err');}
 }
 
 // ----- CALENDÁRIO -----
@@ -539,21 +568,48 @@ function renderCalendario(){
   return sec;
 }
 
+const PERICIA_EXPANDED={};
 function buildPericiaBox(r){
   const box=document.createElement('div');box.className='pericia-box';
+  box.style.marginBottom='10px';box.style.padding='12px 16px';
   const ass=assistFromPrazo(r);
-  const du=daysUntil(r.fields[F.p.data]);
-  const urgColor=du<0?'#a82929':du<=3?'#d64545':'#005F88';
-  box.innerHTML='<h3>'+escHtml(casoNome(r))+'</h3>'+
-    '<div class="proc">'+escHtml(casoProcesso(r)||'(sem número)')+'</div>'+
-    '<div class="grid">'+
-      '<div><b>Data/Hora</b><span style="font-weight:700;color:'+urgColor+'">'+escHtml(fmtDate(r.fields[F.p.data]))+'</span></div>'+
-      '<div><b>Tipo de Perícia</b>'+escHtml(r.fields[F.p.tipoPer]||'-')+'</div>'+
-      '<div><b>Local</b>'+escHtml(r.fields[F.p.local]||'-')+'</div>'+
-      '<div><b>Cidade/Estado</b>'+escHtml(r.fields[F.p.cidade]||'-')+'</div>'+
-      '<div><b>Assistente</b>'+(ass?escHtml(ass.fields[F.a.nome]||'-')+'<br><small style="color:#6b7c8c">'+escHtml(ass.fields[F.a.phone]||'')+' · '+escHtml(ass.fields[F.a.email]||'')+'</small>':'(não definido)')+'</div>'+
-      '<div><b>Status Assistente</b><input type="text" data-fid="'+F.p.statusAss+'" value="'+escHtml(r.fields[F.p.statusAss]||'')+'"></div>'+
-      '<div><b>Valor Assistente (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
+  const du=r.fields[F.p.data]?daysUntil(r.fields[F.p.data]):null;
+  const urgColor=du==null?'#005F88':(du<0?'#a82929':du<=3?'#d64545':'#005F88');
+  const urgent=du!=null&&du>=0&&du<=3;
+  const expanded=!!PERICIA_EXPANDED[r.id];
+  const due=du!=null?(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d'):'';
+  // HEAD (always visible, compact one-line)
+  const head=document.createElement('div');
+  head.style.cssText='display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;cursor:pointer';
+  head.innerHTML='<span class="tag t-pericia'+(urgent?' urg':'')+'">Perícia</span>'+
+    '<div style="flex:1;min-width:240px">'+
+      '<div style="font-family:Barlow Condensed,sans-serif;font-size:17px;font-weight:700;color:#003c56">'+escHtml(casoNome(r))+'</div>'+
+      '<div style="font-size:12px;color:#6b7c8c">'+
+        (casoProcesso(r)?escHtml(casoProcesso(r))+' · ':'')+
+        '📅 <b style="color:'+urgColor+'">'+escHtml(fmtDate(r.fields[F.p.data]))+'</b>'+
+        (due?' ('+due+')':'')+
+        (r.fields[F.p.local]?' · '+escHtml(r.fields[F.p.local]).slice(0,60):'')+
+        (ass?' · 👤 '+escHtml(ass.fields[F.a.nome]||''):'')+
+      '</div>'+
+    '</div>'+
+    '<button class="btn iconbtn" title="Excluir" data-act="del">🗑</button>'+
+    '<button class="btn sm gray" data-act="tog">'+(expanded?'▲ Recolher':'▼ Detalhes')+'</button>';
+  box.appendChild(head);
+
+  // BODY (collapsible)
+  const body=document.createElement('div');
+  body.style.cssText='margin-top:14px;padding-top:14px;border-top:1px solid #eef3f7;display:'+(expanded?'block':'none');
+  const assOptions='<option value="">—</option>'+DATA.assist.map(a=>'<option value="'+a.id+'"'+(ass&&ass.id===a.id?' selected':'')+'>'+escHtml(a.fields[F.a.nome]||'')+'</option>').join('');
+  const statusOpts='<option value="">—</option>'+STATUS_ASS_OPTS.map(s=>'<option'+(r.fields[F.p.statusAss]===s?' selected':'')+'>'+s+'</option>').join('');
+  const tipoPerOpts='<option value="">—</option>'+TIPO_PER_OPTS.map(s=>'<option'+(r.fields[F.p.tipoPer]===s?' selected':'')+'>'+s+'</option>').join('');
+  body.innerHTML='<div class="grid">'+
+      '<div><b>Data / Hora</b><input type="datetime-local" data-fid="'+F.p.data+'" data-type="datetime" value="'+(r.fields[F.p.data]?new Date(r.fields[F.p.data]).toISOString().slice(0,16):'')+'"></div>'+
+      '<div><b>Tipo de Perícia</b><select data-fid="'+F.p.tipoPer+'">'+tipoPerOpts+'</select></div>'+
+      '<div><b>Assistente</b><select data-fid="'+F.p.assistente+'" data-type="link">'+assOptions+'</select>'+(ass?'<small style="color:#6b7c8c;display:block;margin-top:2px">'+escHtml(ass.fields[F.a.phone]||'')+(ass.fields[F.a.email]?' · '+escHtml(ass.fields[F.a.email]):'')+'</small>':'')+'</div>'+
+      '<div><b>Status do Assistente</b><select data-fid="'+F.p.statusAss+'">'+statusOpts+'</select></div>'+
+      '<div><b>Valor Assistente (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" data-type="number" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
+      '<div><b>Local da Perícia</b><input type="text" data-fid="'+F.p.local+'" value="'+escHtml(r.fields[F.p.local]||'')+'"></div>'+
+      '<div><b>Cidade / Estado</b><input type="text" data-fid="'+F.p.cidade+'" value="'+escHtml(r.fields[F.p.cidade]||'')+'"></div>'+
       '<div style="grid-column:1/-1"><b>Observação</b><textarea data-fid="'+F.p.obs+'">'+escHtml(r.fields[F.p.obs]||'')+'</textarea></div>'+
     '</div>'+
     '<div class="chks">'+
@@ -562,27 +618,34 @@ function buildPericiaBox(r){
       '<label><input type="checkbox" data-fid="'+F.p.relato+'"'+(r.fields[F.p.relato]?' checked':'')+'> Relato Solicitado</label>'+
       '<label><input type="checkbox" data-fid="'+F.p.remarc+'"'+(r.fields[F.p.remarc]?' checked':'')+'> Perícia Remarcada</label>'+
     '</div>'+
-    '<div class="foot"><span class="msg"></span><button class="btn green">Marcar como Finalizado</button></div>';
-  const msg=box.querySelector('.msg');
+    '<div class="foot"><span class="msg"></span><button class="btn green" data-act="fin">Marcar como Finalizada</button></div>';
+  box.appendChild(body);
+
+  const msg=()=>body.querySelector('.msg');
   async function save(fid,val){
-    try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;msg.textContent='Salvo';msg.className='msg ok';setTimeout(()=>msg.textContent='',2000);}
-    catch(e){msg.textContent='Erro: '+e.message;msg.className='msg err';}
+    try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;const m=msg();if(m){m.textContent='Salvo';m.className='msg ok';setTimeout(()=>{m.textContent='';},2000);}toast('Salvo','ok');}
+    catch(e){const m=msg();if(m){m.textContent='Erro: '+e.message;m.className='msg err';}toast('Erro: '+e.message,'err');}
   }
-  box.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-    cb.onchange=()=>save(cb.dataset.fid,cb.checked);
-  });
-  box.querySelectorAll('input[type=text],input[type=number],textarea').forEach(inp=>{
+  body.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>save(cb.dataset.fid,cb.checked));
+  body.querySelectorAll('input[type=text],input[type=number],input[type=datetime-local],textarea,select').forEach(inp=>{
     inp.onchange=()=>{
-      let v=inp.value;
-      if(inp.type==='number')v=v===''?null:parseFloat(v);
-      save(inp.dataset.fid,v);
+      let v=inp.value;const fid=inp.dataset.fid,type=inp.dataset.type;
+      if(type==='number')v=v===''?null:parseFloat(v);
+      else if(type==='datetime')v=v?new Date(v).toISOString():null;
+      else if(type==='link')v=v?[v]:[];
+      save(fid,v);
     };
   });
-  box.querySelector('button.btn.green').onclick=async()=>{
+  body.querySelector('[data-act=fin]').onclick=async()=>{
     if(!confirm('Marcar esta perícia como finalizada?'))return;
-    try{await patchRecord(TBL.prazos,r.id,{[F.p.finalizado]:true});toast('Finalizado','ok');loadData();}
+    try{await patchRecord(TBL.prazos,r.id,{[F.p.finalizado]:true});toast('Finalizada','ok');loadData();}
     catch(e){toast('Erro: '+e.message,'err');}
   };
+  // HEAD actions
+  head.querySelector('[data-act=del]').onclick=e=>{e.stopPropagation();confirmDelete(r);};
+  const toggle=()=>{PERICIA_EXPANDED[r.id]=!PERICIA_EXPANDED[r.id];render();};
+  head.querySelector('[data-act=tog]').onclick=e=>{e.stopPropagation();toggle();};
+  head.onclick=toggle;
   return box;
 }
 
