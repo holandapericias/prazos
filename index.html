@@ -217,20 +217,33 @@ async function createRecord(table,fields){
   if(!r.ok){const t=await r.text();throw new Error('POST '+r.status+' '+t);}
   return r.json();
 }
-// Componente reutilizável: campo de busca de assistente com autocomplete + opção de criar novo
+// Componente reutilizável: campo de busca de assistente com autocomplete + opção de criar novo + remover
 function buildAssistenteSearch(opts){
-  // opts: {currentId, onPick(assRec), placeholder}
+  // opts: {currentId, onPick(assRec), onClear(), placeholder}
   const wrap=document.createElement('div');wrap.style.cssText='position:relative;width:100%';
   const current=opts.currentId?ASSIST_BY_ID[opts.currentId]:null;
   wrap.innerHTML=
-    '<input type="text" class="ass-input" autocomplete="off" placeholder="'+(opts.placeholder||'Buscar assistente por nome, especialidade ou cidade...')+'" '+
-      'value="'+escHtml(current?(current.fields[F.a.nome]||''):'')+'" '+
-      'style="width:100%;padding:8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px">'+
+    '<div style="position:relative">'+
+      '<input type="text" class="ass-input" autocomplete="off" placeholder="'+(opts.placeholder||'Buscar assistente por nome, especialidade ou cidade...')+'" '+
+        'value="'+escHtml(current?(current.fields[F.a.nome]||''):'')+'" '+
+        'style="width:100%;padding:8px 30px 8px 8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px">'+
+      (current?'<button class="ass-clear" type="button" title="Remover assistente" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:#a82929;cursor:pointer;font-size:18px;line-height:1;padding:2px 6px;font-weight:700">×</button>':'')+
+    '</div>'+
     '<div class="ass-list" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #cdd9e3;border-radius:6px;max-height:280px;overflow-y:auto;z-index:50;box-shadow:0 6px 18px rgba(0,0,0,.12)"></div>'+
-    (current?'<small style="color:#6b7c8c;display:block;margin-top:2px">'+escHtml(current.fields[F.a.phone]||'')+(current.fields[F.a.email]?' · '+escHtml(current.fields[F.a.email]):'')+(current.fields[F.a.local]?' · '+escHtml(current.fields[F.a.local]):'')+'</small>':'');
+    '<div class="ass-meta">'+(current?'<small style="color:#6b7c8c;display:block;margin-top:2px">'+escHtml(current.fields[F.a.phone]||'')+(current.fields[F.a.email]?' · '+escHtml(current.fields[F.a.email]):'')+(current.fields[F.a.local]?' · '+escHtml(current.fields[F.a.local]):'')+'</small>':'')+'</div>';
   const inp=wrap.querySelector('.ass-input');
   const list=wrap.querySelector('.ass-list');
   let pickedId=opts.currentId||'';
+  const clearBtn=wrap.querySelector('.ass-clear');
+  if(clearBtn)clearBtn.onclick=(e)=>{
+    e.preventDefault();e.stopPropagation();
+    if(!confirm('Remover assistente desta perícia?'))return;
+    pickedId='';
+    inp.value='';
+    clearBtn.remove();
+    wrap.querySelector('.ass-meta').innerHTML='';
+    if(opts.onClear)opts.onClear();
+  };
   function buildList(q){
     const ql=(q||'').toLowerCase().trim();
     let items=DATA.assist;
@@ -923,7 +936,11 @@ function buildPericiaBox(r){
   // Plugar o componente de assistente
   const assSlot=body.querySelector('[data-slot=assistente]');
   if(assSlot){
-    const search=buildAssistenteSearch({currentId:ass?ass.id:'',onPick:(newAss)=>save(F.p.assistente,[newAss.id])});
+    const search=buildAssistenteSearch({
+      currentId:ass?ass.id:'',
+      onPick:(newAss)=>save(F.p.assistente,[newAss.id]),
+      onClear:()=>save(F.p.assistente,[])
+    });
     assSlot.appendChild(search);
   }
   body.querySelectorAll('input[type=text],input[type=number],input[type=datetime-local],textarea,select').forEach(inp=>{
