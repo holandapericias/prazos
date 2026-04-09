@@ -1056,50 +1056,112 @@ function openNovoPrazoModal(prefill){
   const m=document.createElement('div');m.className='modal';
   const tipos=Object.keys(TIPO_CLASS);
   m.innerHTML='<h2>Novo Prazo</h2><div class="fg">'+
-    '<div class="full"><label>Caso</label><select id="fCaso"><option value="">— selecione —</option>'+
-      DATA.casos.map(c=>'<option value="'+c.id+'">'+escHtml(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+escHtml(c.fields[F.c.processo]):'')+'</option>').join('')+
-    '</select></div>'+
+    '<div class="full" style="position:relative">'+
+      '<label>Caso</label>'+
+      '<input type="text" id="fCasoInput" placeholder="Comece a digitar o nome ou processo..." autocomplete="off">'+
+      '<input type="hidden" id="fCaso">'+
+      '<div id="fCasoList" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #cdd9e3;border-radius:6px;max-height:240px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>'+
+    '</div>'+
     '<div class="full"><label>Tipo de Prazo</label><select id="fTipo">'+tipos.map(t=>'<option>'+t+'</option>').join('')+'</select></div>'+
-    '<div><label>Data e Hora</label><input type="datetime-local" id="fData"></div>'+
-    '<div><label>Tipo de Perícia</label><select id="fTipoPer"><option value="">—</option><option>Engenharia</option><option>Medicina</option></select></div>'+
-    '<div class="full"><label>Assistente</label><select id="fAss"><option value="">—</option>'+
-      DATA.assist.map(a=>'<option value="'+a.id+'">'+escHtml(a.fields[F.a.nome]||'')+'</option>').join('')+
-    '</select></div>'+
-    '<div class="full"><label>Local da Perícia</label><input type="text" id="fLocal"></div>'+
-    '<div class="full"><label>Cidade/Estado</label><input type="text" id="fCidade"></div>'+
-    '<div class="full"><label>Observação</label><textarea id="fObs"></textarea></div>'+
+    '<div id="periciaFields" style="display:none;width:100%">'+
+      '<div class="fg">'+
+        '<div><label>Data e Hora</label><input type="datetime-local" id="fData"></div>'+
+        '<div><label>Tipo de Perícia</label><select id="fTipoPer"><option value="">—</option><option>Engenharia</option><option>Medicina</option></select></div>'+
+        '<div class="full"><label>Assistente</label><select id="fAss"><option value="">—</option>'+
+          DATA.assist.map(a=>'<option value="'+a.id+'">'+escHtml(a.fields[F.a.nome]||'')+'</option>').join('')+
+        '</select></div>'+
+        '<div class="full"><label>Local da Perícia</label><input type="text" id="fLocal"></div>'+
+        '<div class="full"><label>Cidade/Estado</label><input type="text" id="fCidade"></div>'+
+        '<div class="full"><label>Observação</label><textarea id="fObs"></textarea></div>'+
+      '</div>'+
+    '</div>'+
+    '<div id="naoPericiaFields" class="full" style="display:none">'+
+      '<label>Data do Prazo</label><input type="date" id="fDataSimples">'+
+    '</div>'+
     '</div><div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">Salvar</button></div>';
   bg.appendChild(m);document.getElementById('modalHost').appendChild(bg);
   const close=()=>bg.remove();
   m.querySelector('#cl').onclick=close;
   bg.onclick=e=>{if(e.target===bg)close();};
+
+  // Autocomplete de caso
+  const inp=m.querySelector('#fCasoInput');
+  const hid=m.querySelector('#fCaso');
+  const list=m.querySelector('#fCasoList');
+  function pickCaso(c){
+    hid.value=c.id;
+    inp.value=(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+c.fields[F.c.processo]:'');
+    list.style.display='none';
+  }
+  function searchCasos(q){
+    if(!q||q.length<2){list.style.display='none';return;}
+    const ql=q.toLowerCase();
+    const hits=DATA.casos.filter(c=>{
+      const n=(c.fields[F.c.palavra]||'').toLowerCase();
+      const p=(c.fields[F.c.processo]||'').toLowerCase();
+      return n.includes(ql)||p.includes(ql);
+    }).slice(0,15);
+    if(!hits.length){list.innerHTML='<div style="padding:10px 12px;color:#6b7c8c;font-size:13px">Nenhum caso encontrado</div>';list.style.display='block';return;}
+    list.innerHTML=hits.map(c=>'<div data-id="'+c.id+'" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid #eef3f7;font-size:13px"><b>'+escHtml(c.fields[F.c.palavra]||'(sem nome)')+'</b>'+(c.fields[F.c.processo]?'<br><small style="color:#6b7c8c">'+escHtml(c.fields[F.c.processo])+'</small>':'')+'</div>').join('');
+    list.style.display='block';
+    list.querySelectorAll('[data-id]').forEach(el=>{
+      el.onmouseenter=()=>el.style.background='#f0f7fc';
+      el.onmouseleave=()=>el.style.background='';
+      el.onclick=()=>{const c=DATA.casos.find(x=>x.id===el.dataset.id);if(c)pickCaso(c);};
+    });
+  }
+  inp.oninput=()=>{hid.value='';searchCasos(inp.value);};
+  inp.onfocus=()=>{if(inp.value)searchCasos(inp.value);};
+  inp.onblur=()=>setTimeout(()=>list.style.display='none',180);
+
+  // Toggle de campos por tipo
+  const tipoSel=m.querySelector('#fTipo');
+  function toggleFields(){
+    const isPer=tipoSel.value==='Perícia';
+    m.querySelector('#periciaFields').style.display=isPer?'block':'none';
+    m.querySelector('#naoPericiaFields').style.display=isPer?'none':'block';
+  }
+  tipoSel.onchange=toggleFields;
+  toggleFields();
+
   if(prefill){
-    if(prefill.casoId)m.querySelector('#fCaso').value=prefill.casoId;
-    if(prefill.casoSugerido)m.querySelector('#fCaso').value=prefill.casoSugerido;
-    if(prefill.tipo==='laudo_publicado')m.querySelector('#fTipo').value='Manifestação ao Laudo';
-    if(prefill.tipo==='pericia_designada')m.querySelector('#fTipo').value='Perícia';
-    if(prefill.descricao||prefill.resumo)m.querySelector('#fObs').value=prefill.descricao||prefill.resumo;
+    const cid=prefill.casoId||prefill.casoSugerido||'';
+    if(cid){const c=DATA.casos.find(x=>x.id===cid);if(c)pickCaso(c);}
+    if(prefill.tipo==='laudo_publicado'||prefill.tipoSugerido==='Manifestação ao Laudo')tipoSel.value='Manifestação ao Laudo';
+    else if(prefill.tipo==='pericia_designada'||prefill.tipoSugerido==='Perícia')tipoSel.value='Perícia';
+    toggleFields();
+    if(prefill.descricao||prefill.resumo){
+      const obsEl=m.querySelector('#fObs');
+      if(obsEl&&tipoSel.value==='Perícia')obsEl.value=prefill.descricao||prefill.resumo;
+    }
   }
   const msg=m.querySelector('.msg');
   m.querySelector('#sv').onclick=async()=>{
-    const casoId=m.querySelector('#fCaso').value;
-    const tipo=m.querySelector('#fTipo').value;
-    const data=m.querySelector('#fData').value;
-    const tipoPer=m.querySelector('#fTipoPer').value;
-    const assId=m.querySelector('#fAss').value;
-    const local=m.querySelector('#fLocal').value;
-    const cidade=m.querySelector('#fCidade').value;
-    const obs=m.querySelector('#fObs').value;
-    if(!casoId||!tipo||!data){msg.textContent='Caso, tipo e data são obrigatórios';msg.className='msg err';return;}
+    const casoId=hid.value;
+    const tipo=tipoSel.value;
+    if(!casoId||!tipo){msg.textContent='Caso e tipo são obrigatórios';msg.className='msg err';return;}
     const fields={};
     fields[F.p.caso]=[casoId];
     fields[F.p.tipo]=[tipo];
-    fields[F.p.data]=new Date(data).toISOString();
-    if(tipoPer)fields[F.p.tipoPer]=tipoPer;
-    if(assId)fields[F.p.assistente]=[assId];
-    if(local)fields[F.p.local]=local;
-    if(cidade)fields[F.p.cidade]=cidade;
-    if(obs)fields[F.p.obs]=obs;
+    if(tipo==='Perícia'){
+      const data=m.querySelector('#fData').value;
+      if(!data){msg.textContent='Data e hora são obrigatórios para Perícia';msg.className='msg err';return;}
+      fields[F.p.data]=new Date(data).toISOString();
+      const tipoPer=m.querySelector('#fTipoPer').value;
+      const assId=m.querySelector('#fAss').value;
+      const local=m.querySelector('#fLocal').value;
+      const cidade=m.querySelector('#fCidade').value;
+      const obs=m.querySelector('#fObs').value;
+      if(tipoPer)fields[F.p.tipoPer]=tipoPer;
+      if(assId)fields[F.p.assistente]=[assId];
+      if(local)fields[F.p.local]=local;
+      if(cidade)fields[F.p.cidade]=cidade;
+      if(obs)fields[F.p.obs]=obs;
+    }else{
+      const data=m.querySelector('#fDataSimples').value;
+      if(!data){msg.textContent='Data é obrigatória';msg.className='msg err';return;}
+      fields[F.p.data]=new Date(data+'T12:00:00').toISOString();
+    }
     try{
       await createRecord(TBL.prazos,fields);
       toast('Prazo criado','ok');
