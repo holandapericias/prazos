@@ -978,6 +978,8 @@ function buildPosPericiaCard(r){
   const ass=assistFromPrazo(r);
   const data=r.fields[F.p.data];
   const realizada=!!r.fields[F.p.realizada];
+  const finalizado=!!r.fields[F.p.finalizado];
+  const naoAconteceu=finalizado&&!realizada;
   const remarcada=!!r.fields[F.p.remarc];
   const relatorio=!!r.fields[F.p.relatorioPos];
   const viaWpp=!!r.fields[F.p.confWpp];
@@ -993,14 +995,19 @@ function buildPosPericiaCard(r){
       '</div>'+
       '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
         (realizada?'<span class="tag t-manif">✓ Realizada</span>':'')+
+        (naoAconteceu?'<span class="tag" style="background:#a82929;color:#fff">✗ Não aconteceu</span>':'')+
         (viaWpp?'<span class="tag t-quesitos" title="Confirmado pelo assistente via WhatsApp">📱 via WhatsApp</span>':'')+
         (cobs.length?(cobs.some(c=>c.fields[F.cob.pago])?'<span class="tag t-manif">💰 Pago</span>':'<span class="tag t-pericia">💸 Cobrança solicitada</span>'):'')+
       '</div>'+
     '</div>'+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px">'+
-      '<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#003c56;padding:10px 12px;background:#f8fbfd;border-radius:6px;cursor:pointer">'+
-        '<input type="checkbox" data-act="realizada"'+(realizada?' checked':'')+'> <b>Perícia aconteceu</b>'+
-      '</label>'+
+    '<div style="margin-top:10px">'+
+      '<b style="font-size:11px;color:#6b7c8c;text-transform:uppercase;display:block;margin-bottom:6px">A perícia aconteceu?</b>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+        '<button class="btn sm '+(realizada?'green':'gray')+'" data-act="aconteceu">✓ Sim, aconteceu</button>'+
+        '<button class="btn sm '+(naoAconteceu?'danger':'gray')+'" data-act="nao">✗ Não aconteceu</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="margin-top:10px">'+
       '<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#003c56;padding:10px 12px;background:#f8fbfd;border-radius:6px;cursor:pointer">'+
         '<input type="checkbox" data-act="relatorio"'+(relatorio?' checked':'')+'> <b>Relatório pós-perícia enviado</b>'+
       '</label>'+
@@ -1028,7 +1035,27 @@ function buildPosPericiaCard(r){
     try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;toast('Salvo','ok');}
     catch(e){toast('Erro: '+e.message,'err');}
   }
-  box.querySelector('[data-act=realizada]').onchange=e=>save(F.p.realizada,e.target.checked);
+  box.querySelector('[data-act=aconteceu]').onclick=async()=>{
+    try{
+      await patchRecord(TBL.prazos,r.id,{[F.p.realizada]:true,[F.p.finalizado]:true});
+      r.fields[F.p.realizada]=true;r.fields[F.p.finalizado]=true;
+      toast('Marcada como realizada','ok');render();
+    }catch(e){toast('Erro: '+e.message,'err');}
+  };
+  box.querySelector('[data-act=nao]').onclick=async()=>{
+    const motivo=prompt('Por que a perícia não aconteceu? (opcional — vai pra Comentário do Assistente)');
+    if(motivo===null)return;
+    try{
+      const fields={[F.p.realizada]:false,[F.p.finalizado]:true};
+      if(motivo.trim()){
+        const atual=r.fields[F.p.comentarioAss]||'';
+        fields[F.p.comentarioAss]=(atual?atual+'\n':'')+'NÃO ACONTECEU: '+motivo.trim();
+      }
+      await patchRecord(TBL.prazos,r.id,fields);
+      Object.assign(r.fields,fields);
+      toast('Marcada como não aconteceu','ok');render();
+    }catch(e){toast('Erro: '+e.message,'err');}
+  };
   box.querySelector('[data-act=relatorio]').onchange=e=>save(F.p.relatorioPos,e.target.checked);
   const txt=box.querySelector('[data-act=comentario]');
   txt.onchange=()=>save(F.p.comentarioAss,txt.value);
@@ -1078,7 +1105,7 @@ function openCobrancaModal(prazoRec,existingCob){
     '<div class="fg">'+
       '<div class="full"><label>Assistente Técnico</label><div id="cAssSlot"></div></div>'+
       '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
-      '<div><label>Data Prevista</label><input type="date" id="fData" value="'+(cf[F.cob.dataPag]||hoje)+'"></div>'+
+      '<div><label>Data da Solicitação</label><input type="date" id="fData" value="'+(cf[F.cob.dataPag]||hoje)+'"></div>'+
       '<div class="full"><label>Tipo</label><select id="fTipopg">'+
         tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+
       '</select></div>'+
