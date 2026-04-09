@@ -1,12 +1,51 @@
 {
-  "lastChecked": "2026-04-09T14:00:00Z",
-  "alerts": [],
+  "lastChecked": "2026-04-09T15:30:00Z",
+  "alerts": [
+    {
+      "id": "pje-0000-mp-20260409",
+      "casoId": "rec5ARBbfmo3TfXoU",
+      "casoNome": "ROMERO DA SILVA COSTA X PEDALUSA ALIMENTOS S/A",
+      "numeroProcesso": "0000905-09.2025.5.07.0034",
+      "tipo": "manifestacao_perdida",
+      "tipoSugerido": "Manifestação ao Laudo",
+      "descricao": "Laudo Pericial de Insalubridade publicado em 06/10/2025. Manifestação ao Laudo foi protocolada em nome do autor em 13/10/2025 (pelo nome do arquivo, parece ser manifestação NOSSA), mas nunca foi registrada no Airtable. Depois houve audiência (25/11), sentença (27/11) e recurso ordinário (12/12). Caso já está em 2º grau. Valor: R$ 2.200 — não cobrados.",
+      "dataDeteccao": "2026-04-09",
+      "dataLaudo": "2025-10-06",
+      "conclusaoLaudo": "Laudo Pericial de Insalubridade. Nossa manifestação foi feita e protocolada em 13/10/2025 como 'Manifestação ao Laudo Pericial - Insalubridade - ROMERO DA SILVA COSTA.pdf'. Processo já em recurso ordinário (2º grau).",
+      "urgencia": "alta"
+    },
+    {
+      "id": "pje-0001-mp-20260409",
+      "casoId": "recjUCrVRBKSMHL1g",
+      "casoNome": "FRANCISCA JESSICA ALMEIDA AMORIM SOARES X LUNELLI TEXTIL NORDESTE LTDA",
+      "numeroProcesso": "0001835-30.2025.5.07.0033",
+      "tipo": "manifestacao_perdida",
+      "tipoSugerido": "Manifestação ao Laudo",
+      "descricao": "Laudo pericial publicado em 06/02/2026 — NÃO existe nexo causal entre a tendinite/bursite da trabalhadora e o trabalho na LUNELLI. Laudo DESFAVORÁVEL ao trabalhador. Em 12/02/2026 o advogado da LUNELLI (HULAND, OAB/CE 17.038) protocolou manifestação concordando. Nossa manifestação foi dispensada. Valor: R$ 2.750 — não cobrados.",
+      "dataDeteccao": "2026-04-09",
+      "dataLaudo": "2026-02-06",
+      "conclusaoLaudo": "Perito concluiu: 'A periciada foi e ainda é portadora de tendinite e bursite ilio tibial do joelho direito. NÃO existe nexo causal, ou de concausa entre esta doença e seu trabalho na reclamada.' Laudo desfavorável ao trabalhador. Manifestação dos advogados da LUNELLI concordando.",
+      "urgencia": "alta"
+    },
+    {
+      "id": "pje-0002-mp-20260409",
+      "casoId": "recv3bVnh9menMNW5",
+      "casoNome": "ROGERIA MARIA VIANA MENDES x LUNELLI TEXTIL NORDESTE LTDA",
+      "numeroProcesso": "0002168-82.2025.5.07.0032",
+      "tipo": "manifestacao_perdida",
+      "tipoSugerido": "Manifestação ao Laudo",
+      "descricao": "Laudo pericial publicado em 25/03/2026 — NÃO existe insalubridade por calor, ruído ou agentes químicos nas atividades de costureira. Laudo DESFAVORÁVEL ao trabalhador. Em 01/04/2026 o advogado da LUNELLI (HULAND, OAB/CE 17.038) protocolou manifestação concordando. Nossa manifestação foi dispensada.",
+      "dataDeteccao": "2026-04-09",
+      "dataLaudo": "2026-03-25",
+      "conclusaoLaudo": "Perito concluiu: 'NÃO EXISTE INSALUBRIDADE, nas atividades exercidas pela Reclamante como COSTUREIRA' (calor, ruído e agentes químicos). Laudo desfavorável ao trabalhador. Manifestação dos advogados da LUNELLI concordando.",
+      "urgencia": "alta"
+    }
+  ],
   "sweepSummary": {
-    "casosVerificados": 4,
-    "sigilosos": 1,
-    "forajanela": 1,
-    "desatualizadosFaseAirtable": 2,
-    "novosAlertas": 0,
-    "nota": "Varredura manual. Vários casos com fase desatualizada no Airtable em relação ao PJe. Próxima varredura automática: amanhã 07:22."
+    "casosVerificados": 6,
+    "sigilosos": 2,
+    "manifPerdidas": 3,
+    "semProblema": 1,
+    "nota": "Casos 'Aguardando Laudo' verificados. Sigilosos: ERASMO (0001683-76), JOSE ROMARIO (0000941-74). Sem problema: ADERSON (perícia recente, aguardando laudo natural)."
   }
 }
