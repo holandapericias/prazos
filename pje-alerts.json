@@ -1,5 +1,12 @@
 {
-  "lastChecked": "2026-04-09T12:30:00Z",
+  "lastChecked": "2026-04-09T14:00:00Z",
   "alerts": [],
-  "note": "PJe (DataJud/TecJustiça) estava instável (HTTP 500) na última varredura. A scheduled task diária tentará novamente."
+  "sweepSummary": {
+    "casosVerificados": 4,
+    "sigilosos": 1,
+    "forajanela": 1,
+    "desatualizadosFaseAirtable": 2,
+    "novosAlertas": 0,
+    "nota": "Varredura manual. Vários casos com fase desatualizada no Airtable em relação ao PJe. Próxima varredura automática: amanhã 07:22."
+  }
 }
