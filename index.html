@@ -217,13 +217,20 @@ async function loadJSON(path){
   try{const r=await fetch(path+'?t='+Date.now());if(!r.ok)return{alerts:[]};return await r.json();}catch(e){return{alerts:[]};}
 }
 
+// Filtros por data: atuais = de ontem em diante (cache padrão)
+function filterPrazosAtuais(){
+  return "AND(NOT({Finalizado?}),NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-1,'days')))";
+}
+function filterPrazosRange(deIso,ateIso){
+  return "AND(NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},'"+deIso+"'),IS_BEFORE({Data da Perícia},'"+ateIso+"'))";
+}
+
 async function loadData(){
   const c=document.getElementById('content');
-  c.innerHTML='<div class="loader"><div class="sp"></div>Carregando prazos...</div>';
+  c.innerHTML='<div class="loader"><div class="sp"></div>Carregando prazos atuais...</div>';
   try{
-    const filter='AND(NOT({Finalizado?}),NOT({Situação}="Arquivado"))';
     const [prazos,casos,assist,pje,gmail]=await Promise.all([
-      fetchAll(TBL.prazos,filter),
+      fetchAll(TBL.prazos,filterPrazosAtuais()),
       fetchAll(TBL.casos),
       fetchAll(TBL.assist),
       loadJSON('pje-alerts.json'),
@@ -233,6 +240,16 @@ async function loadData(){
     DATA.pje=pje.alerts||[];DATA.gmail=gmail.alerts||[];
     casos.forEach(r=>CASO_BY_ID[r.id]=r);
     assist.forEach(r=>ASSIST_BY_ID[r.id]=r);
+    render();
+  }catch(e){
+    c.innerHTML='<div class="section"><h2>Erro</h2><div>'+e.message+'</div></div>';
+  }
+}
+async function loadPassados(de,ate){
+  const c=document.getElementById('content');
+  c.innerHTML='<div class="loader"><div class="sp"></div>Carregando prazos passados...</div>';
+  try{
+    DATA.prazosPassados=await fetchAll(TBL.prazos,filterPrazosRange(de,ate));
     render();
   }catch(e){
     c.innerHTML='<div class="section"><h2>Erro</h2><div>'+e.message+'</div></div>';
@@ -370,35 +387,37 @@ function buildAlertRow(a){
 
 // ----- LISTA (atuais/passados) -----
 const TIPO_ORDER=['Perícia','Manifestação ao Laudo','Enviar Pré-laudo','Contratar Assistente','Quesitos e Assistentes'];
-const PASSADOS={de:'',ate:''};
+const PASSADOS={de:'',ate:'',loaded:''};
 function renderLista(opts){
   const mode=opts.mode;
   const sec=document.createElement('div');sec.className='section';
-  let items=DATA.prazos.slice().filter(r=>r.fields[F.p.data]);
-  const now=new Date();now.setHours(0,0,0,0);
+  const source=mode==='atuais'?DATA.prazos:(DATA.prazosPassados||[]);
+  let items=source.slice().filter(r=>r.fields[F.p.data]);
   if(mode==='atuais'){
+    const now=new Date();now.setHours(0,0,0,0);
     items=items.filter(r=>new Date(r.fields[F.p.data])>=now);
-    sec.innerHTML='<h2>Prazos Atuais <span class="cnt">'+items.length+'</span><span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">de hoje em diante</span></h2>';
+    sec.innerHTML='<h2>Prazos Atuais <span class="cnt">'+items.length+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(de hoje em diante)</span></h2>';
   }else{
-    // passados - use PASSADOS range
-    if(!PASSADOS.de){const d=new Date();d.setMonth(d.getMonth()-3);PASSADOS.de=d.toISOString().slice(0,10);}
+    if(!PASSADOS.de){const d=new Date();d.setDate(d.getDate()-30);PASSADOS.de=d.toISOString().slice(0,10);}
     if(!PASSADOS.ate){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.ate=d.toISOString().slice(0,10);}
-    const de=new Date(PASSADOS.de+'T00:00:00');
-    const ate=new Date(PASSADOS.ate+'T23:59:59');
-    items=items.filter(r=>{const d=new Date(r.fields[F.p.data]);return d>=de&&d<=ate;});
     sec.innerHTML='<h2>Prazos Passados <span class="cnt">'+items.length+'</span></h2>';
     const tb=document.createElement('div');tb.className='toolbar';
     tb.innerHTML='<span>De:</span><input type="date" id="dDe" value="'+PASSADOS.de+'">'+
       '<span>Até:</span><input type="date" id="dAte" value="'+PASSADOS.ate+'">'+
-      '<button class="btn sm" id="dAp">Aplicar</button>'+
+      '<button class="btn sm" id="dAp">Carregar</button>'+
       '<button class="btn sm gray" id="dQ1">Últimos 30d</button>'+
       '<button class="btn sm gray" id="dQ2">Últimos 90d</button>'+
       '<button class="btn sm gray" id="dQ3">Este ano</button>';
     sec.appendChild(tb);
-    tb.querySelector('#dAp').onclick=()=>{PASSADOS.de=tb.querySelector('#dDe').value;PASSADOS.ate=tb.querySelector('#dAte').value;render();};
-    tb.querySelector('#dQ1').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-30);PASSADOS.de=b.toISOString().slice(0,10);PASSADOS.ate=a.toISOString().slice(0,10);render();};
-    tb.querySelector('#dQ2').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-90);PASSADOS.de=b.toISOString().slice(0,10);PASSADOS.ate=a.toISOString().slice(0,10);render();};
-    tb.querySelector('#dQ3').onclick=()=>{const a=new Date();PASSADOS.de=a.getFullYear()+'-01-01';PASSADOS.ate=a.toISOString().slice(0,10);render();};
+    const apply=(de,ate)=>{PASSADOS.de=de;PASSADOS.ate=ate;PASSADOS.loaded=de+'|'+ate;loadPassados(de,ate);};
+    tb.querySelector('#dAp').onclick=()=>apply(tb.querySelector('#dDe').value,tb.querySelector('#dAte').value);
+    tb.querySelector('#dQ1').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-30);apply(b.toISOString().slice(0,10),a.toISOString().slice(0,10));};
+    tb.querySelector('#dQ2').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-90);apply(b.toISOString().slice(0,10),a.toISOString().slice(0,10));};
+    tb.querySelector('#dQ3').onclick=()=>{const a=new Date();apply(a.getFullYear()+'-01-01',a.toISOString().slice(0,10));};
+    if(PASSADOS.loaded!==PASSADOS.de+'|'+PASSADOS.ate){
+      sec.appendChild(Object.assign(document.createElement('div'),{className:'empty',innerHTML:'Escolha um período e clique em <b>Carregar</b>.'}));
+      return sec;
+    }
   }
 
   if(!items.length){sec.innerHTML+='<div class="empty">Nenhum prazo encontrado.</div>';return sec;}
