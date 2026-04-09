@@ -1,4 +1,5 @@
 {
-  "lastChecked": "2026-04-09T10:00:00Z",
-  "alerts": []
+  "lastChecked": "2026-04-09T12:30:00Z",
+  "alerts": [],
+  "note": "PJe (DataJud/TecJustiça) estava instável (HTTP 500) na última varredura. A scheduled task diária tentará novamente."
 }
