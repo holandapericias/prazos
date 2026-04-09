@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Holanda Perícias — Prazos</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Barlow',sans-serif;background:#F2F8FC;color:#222;min-height:100vh}
+header{background:#005F88;color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.1);flex-wrap:wrap;gap:12px}
+header h1{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:24px;letter-spacing:.5px}
+header .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+header button{background:#00AEEF;color:#fff;border:0;padding:8px 14px;border-radius:6px;font-family:'Barlow',sans-serif;font-weight:600;cursor:pointer;font-size:14px}
+header button:hover{background:#0098d1}
+header button.ghost{background:rgba(255,255,255,.15)}
+nav{background:#fff;border-bottom:1px solid #d6e4ef;padding:0 28px;display:flex;gap:4px;overflow-x:auto}
+nav button{background:none;border:0;padding:14px 18px;font-family:'Barlow',sans-serif;font-weight:600;color:#005F88;cursor:pointer;border-bottom:3px solid transparent;font-size:14px;white-space:nowrap}
+nav button.active{border-bottom-color:#00AEEF;color:#003c56}
+main{padding:24px 28px;max-width:1400px;margin:0 auto}
+.section{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 6px rgba(0,0,0,.06);margin-bottom:20px}
+.section h2{font-family:'Barlow Condensed',sans-serif;font-size:20px;color:#005F88;margin-bottom:14px;text-transform:uppercase;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.section h2 .cnt{background:#00AEEF;color:#fff;font-size:12px;padding:2px 10px;border-radius:10px}
+.section.warn{background:#fffbec;border:1px solid #f3d98a}
+.section.warn h2{color:#a35a07}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;font-size:13px;color:#6b7c8c}
+.toolbar select,.toolbar input{padding:7px 10px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;background:#fff}
+.tag{display:inline-block;padding:3px 10px;border-radius:11px;font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;color:#fff}
+.tag.t-pericia{background:#E8A838}
+.tag.t-manif{background:#4CAF50}
+.tag.t-prelaudo{background:#009688}
+.tag.t-contratar{background:#00BCD4}
+.tag.t-quesitos{background:#2196F3}
+.tag.t-outro{background:#6b7c8c}
+.tag.urg{background:#d64545;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.btn{background:#00AEEF;color:#fff;border:0;padding:8px 14px;border-radius:5px;font-family:'Barlow',sans-serif;font-weight:600;cursor:pointer;font-size:13px}
+.btn:hover{background:#0098d1}
+.btn.green{background:#22a06b}.btn.green:hover{background:#1a8358}
+.btn.orange{background:#f08c1f}.btn.orange:hover{background:#c47314}
+.btn.gray{background:#6b7c8c}.btn.gray:hover{background:#55646f}
+.btn.sm{padding:5px 10px;font-size:12px}
+/* ===== Lista ===== */
+.card-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.prazo-card{background:#fff;border-radius:10px;padding:14px 16px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-left:5px solid #00AEEF;transition:all .15s;position:relative}
+.prazo-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.prazo-card.pericia{border-left-color:#E8A838}
+.prazo-card.manif{border-left-color:#4CAF50}
+.prazo-card.prelaudo{border-left-color:#009688}
+.prazo-card.contratar{border-left-color:#00BCD4}
+.prazo-card.quesitos{border-left-color:#2196F3}
+.prazo-card .head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.prazo-card .caso{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:#003c56;line-height:1.2}
+.prazo-card .when{font-size:13px;color:#005F88;font-weight:600;margin:6px 0}
+.prazo-card .meta{font-size:12px;color:#6b7c8c;margin-top:4px;line-height:1.5}
+.prazo-card .meta b{color:#003c56}
+.prazo-card .checks{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+.prazo-card .checks label{display:flex;gap:4px;align-items:center;cursor:pointer;color:#005F88}
+.prazo-card .actions{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.group-head{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;color:#005F88;font-size:14px;font-weight:700;margin:22px 0 10px;padding-bottom:6px;border-bottom:2px solid #d6e4ef;grid-column:1/-1}
+/* ===== Calendário ===== */
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-head .nav{display:flex;gap:6px;align-items:center}
+.cal-head .ttl{font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-size:22px;color:#003c56;font-weight:700}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal .dow{text-align:center;font-family:'Barlow Condensed',sans-serif;text-transform:uppercase;font-size:12px;color:#005F88;font-weight:700;padding:6px 0}
+.cal .day{background:#F8FBFD;border:1px solid #e0eaf1;border-radius:7px;min-height:110px;padding:6px;font-size:11px;overflow:hidden;display:flex;flex-direction:column;gap:3px}
+.cal .day.other{background:#fff;color:#b8c5d0}
+.cal .day.today{border-color:#00AEEF;box-shadow:0 0 0 2px #00AEEF}
+.cal .day .dn{font-weight:700;color:#003c56;font-size:13px;margin-bottom:2px}
+.cal .day .chip{background:#fff;border-left:3px solid #00AEEF;padding:3px 5px;border-radius:3px;font-size:10px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.cal .day .chip.pericia{border-left-color:#E8A838}
+.cal .day .chip.manif{border-left-color:#4CAF50}
+.cal .day .chip.prelaudo{border-left-color:#009688}
+.cal .day .chip.contratar{border-left-color:#00BCD4}
+.cal .day .chip.quesitos{border-left-color:#2196F3}
+.cal .day .chip.urg{background:#fdecec;border-left-color:#d64545}
+/* ===== Perícia cards expandidos ===== */
+.pericia-box{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:4px solid #E8A838;margin-bottom:14px}
+.pericia-box h3{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:#003c56;text-transform:uppercase;margin-bottom:6px}
+.pericia-box .proc{font-size:12px;color:#6b7c8c;font-family:'Barlow Condensed',sans-serif;margin-bottom:10px}
+.pericia-box .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 18px;font-size:13px}
+.pericia-box .grid div{color:#003c56}
+.pericia-box .grid b{color:#6b7c8c;font-size:11px;text-transform:uppercase;display:block;font-weight:600}
+.pericia-box .grid input,.pericia-box .grid select,.pericia-box .grid textarea{width:100%;padding:6px 8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;margin-top:2px}
+.pericia-box .chks{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid #eef3f7}
+.pericia-box .chks label{display:flex;gap:6px;align-items:center;font-size:13px;color:#003c56;cursor:pointer}
+.pericia-box .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap}
+.pericia-box .msg{font-size:12px;font-weight:600}
+.pericia-box .msg.ok{color:#1a7a4f}.pericia-box .msg.err{color:#a82929}
+/* ===== Alertas ===== */
+.alert{background:#fff7e6;border-left:4px solid #f08c1f;padding:12px 16px;border-radius:6px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.alert.alta{background:#fdecec;border-left-color:#d64545}
+.alert .icon{font-size:22px;line-height:1}
+.alert .body{flex:1;font-size:13px;color:#003c56}
+.alert .body .src{font-size:11px;color:#6b7c8c;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px}
+.alert .body .t{font-weight:700;margin-bottom:3px}
+.alert .body .d{color:#5a6c7d}
+.alert .actions{display:flex;gap:6px;flex-wrap:wrap}
+/* ===== Modal ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(0,60,86,.55);display:flex;align-items:center;justify-content:center;z-index:150;padding:20px}
+.modal{background:#fff;border-radius:12px;padding:26px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h2{font-family:'Barlow Condensed',sans-serif;color:#005F88;text-transform:uppercase;margin-bottom:16px;font-size:22px}
+.modal .fg{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.modal label{display:block;font-size:11px;text-transform:uppercase;font-weight:600;color:#005F88;margin-bottom:4px;letter-spacing:.3px}
+.modal input,.modal select,.modal textarea{width:100%;padding:9px;border:1px solid #cdd9e3;border-radius:5px;font-family:'Barlow',sans-serif;font-size:14px}
+.modal textarea{min-height:70px;resize:vertical}
+.modal .full{grid-column:1/-1}
+.modal .foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+.modal .msg{font-size:12px;font-weight:600;flex:1;align-self:center}
+.modal .msg.ok{color:#1a7a4f}.modal .msg.err{color:#a82929}
+/* ===== Login / states ===== */
+.loader{text-align:center;padding:40px;color:#6b7c8c}
+.loader .sp{display:inline-block;width:36px;height:36px;border:4px solid #e0eaf1;border-top-color:#00AEEF;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:28px;text-align:center;color:#6b7c8c;font-style:italic}
+.toast{position:fixed;top:16px;right:16px;background:#005F88;color:#fff;padding:14px 18px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:200;max-width:360px;font-size:13px}
+.toast.err{background:#a82929}
+.toast.ok{background:#22a06b}
+#login{position:fixed;inset:0;background:#005F88;display:flex;align-items:center;justify-content:center;z-index:100}
+#login .box{background:#fff;padding:36px;border-radius:12px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3);max-width:340px;width:90%}
+#login h2{font-family:'Barlow Condensed',sans-serif;color:#005F88;margin-bottom:18px;font-size:22px;text-transform:uppercase}
+#login input{width:100%;padding:12px;border:1px solid #cdd9e3;border-radius:6px;font-size:15px;margin-bottom:12px;font-family:'Barlow',sans-serif}
+#login button{width:100%;background:#005F88;color:#fff;border:0;padding:12px;border-radius:6px;font-weight:600;cursor:pointer;font-size:15px}
+#login button:hover{background:#003c56}
+#login .err{color:#d64545;font-size:13px;margin-top:8px;min-height:18px}
+@media(max-width:720px){
+  main{padding:16px}
+  .card-list{grid-template-columns:1fr}
+  .cal .day{min-height:70px;font-size:10px}
+  .cal .day .dn{font-size:11px}
+  .cal .day .chip{font-size:9px;padding:2px 3px}
+  nav{padding:0 16px}
+  header{padding:14px 16px}
+  header h1{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+<header>
+  <h1>HOLANDA PERÍCIAS — PRAZOS</h1>
+  <div class="actions">
+    <button id="novoPrazoBtn">+ Novo Prazo</button>
+    <button id="reloadBtn" class="ghost" title="Recarregar">↻</button>
+  </div>
+</header>
+<nav>
+  <button data-tab="lista" class="active">Prazos Atuais</button>
+  <button data-tab="calendario">Calendário</button>
+  <button data-tab="passados">Prazos Passados</button>
+  <button data-tab="alertas" id="alertasTabBtn">⚠️ Alertas <span id="alertasBadge" style="display:none;background:#d64545;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-left:4px"></span></button>
+</nav>
+<main id="content"><div class="loader"><div class="sp"></div>Carregando...</div></main>
+</div>
+
+<div id="modalHost"></div>
+<div id="toastHost"></div>
+
+<script>
+// ===== CONFIG =====
+const BASE='appTEAYT5TYhnQwTn';
+const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf'};
+const F={
+  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE'},
+  c:{palavra:'fldj5FBvJfRd0BC22',processo:'fldzUYMqa3SNmcaiy',fase:'fld86RIjqxRbIyK2H',tipo:'fldQFTIMb6qh8hvfN',cliente:'fld7ddtpPu5BrgIoL',prazos:'fldOwEr9lEEitNdl7'},
+  a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG'}
+};
+
+// ===== TOKEN (sem senha) =====
+const TK='patUImrXK1EQGmOQ6.b11a324c84d2dd8b34f62ca5a81bb2ef330dd9b8e4bd589bc4e162a581ff1f15';
+
+// ===== TOAST =====
+function toast(msg,kind){
+  const el=document.createElement('div');el.className='toast '+(kind||'');el.textContent=msg;
+  document.getElementById('toastHost').appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+
+// ===== DATA =====
+const DATA={prazos:[],casos:[],assist:[],pje:[],gmail:[]};
+const CASO_BY_ID={},ASSIST_BY_ID={};
+
+async function fetchAll(table,filterByFormula){
+  const recs=[];let offset='';
+  do{
+    let url='https://api.airtable.com/v0/'+BASE+'/'+encodeURIComponent(table)+'?returnFieldsByFieldId=true&pageSize=100'+(offset?'&offset='+encodeURIComponent(offset):'');
+    if(filterByFormula)url+='&filterByFormula='+encodeURIComponent(filterByFormula);
+    const r=await fetch(url,{headers:{Authorization:'Bearer '+TK}});
+    if(!r.ok)throw new Error('HTTP '+r.status+' '+table);
+    const j=await r.json();
+    recs.push.apply(recs,j.records);
+    offset=j.offset||'';
+  }while(offset);
+  return recs;
+}
+
+async function patchRecord(table,id,fields){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+encodeURIComponent(table)+'/'+id,{
+    method:'PATCH',headers:{Authorization:'Bearer '+TK,'Content-Type':'application/json'},
+    body:JSON.stringify({fields})
+  });
+  if(!r.ok)throw new Error('PATCH '+r.status);
+  return r.json();
+}
+async function createRecord(table,fields){
+  const r=await fetch('https://api.airtable.com/v0/'+BASE+'/'+encodeURIComponent(table),{
+    method:'POST',headers:{Authorization:'Bearer '+TK,'Content-Type':'application/json'},
+    body:JSON.stringify({fields})
+  });
+  if(!r.ok){const t=await r.text();throw new Error('POST '+r.status+' '+t);}
+  return r.json();
+}
+
+async function loadJSON(path){
+  try{const r=await fetch(path+'?t='+Date.now());if(!r.ok)return{alerts:[]};return await r.json();}catch(e){return{alerts:[]};}
+}
+
+async function loadData(){
+  const c=document.getElementById('content');
+  c.innerHTML='<div class="loader"><div class="sp"></div>Carregando prazos...</div>';
+  try{
+    const filter='AND(NOT({Finalizado?}),NOT({Situação}="Arquivado"))';
+    const [prazos,casos,assist,pje,gmail]=await Promise.all([
+      fetchAll(TBL.prazos,filter),
+      fetchAll(TBL.casos),
+      fetchAll(TBL.assist),
+      loadJSON('pje-alerts.json'),
+      loadJSON('gmail-alerts.json')
+    ]);
+    DATA.prazos=prazos;DATA.casos=casos;DATA.assist=assist;
+    DATA.pje=pje.alerts||[];DATA.gmail=gmail.alerts||[];
+    casos.forEach(r=>CASO_BY_ID[r.id]=r);
+    assist.forEach(r=>ASSIST_BY_ID[r.id]=r);
+    render();
+  }catch(e){
+    c.innerHTML='<div class="section"><h2>Erro</h2><div>'+e.message+'</div></div>';
+  }
+}
+document.getElementById('reloadBtn').onclick=loadData;
+
+// ===== HELPERS =====
+const TIPO_CLASS={
+  'Perícia':'pericia','Manifestação ao Laudo':'manif','Enviar Pré-laudo':'prelaudo',
+  'Contratar Assistente':'contratar','Quesitos e Assistentes':'quesitos'
+};
+function tipoClass(tipo){return TIPO_CLASS[tipo]||'outro';}
+function firstTipo(rec){const v=rec.fields[F.p.tipo];if(!v)return null;return Array.isArray(v)?v[0]:v;}
+function fmtDate(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
+function dayKey(iso){const d=new Date(iso);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function daysUntil(iso){const d=new Date(iso);const now=new Date();return Math.floor((d-now)/86400000);}
+function casoNome(rec){
+  const link=rec.fields[F.p.caso];
+  if(!link||!link.length)return'(sem caso)';
+  const c=CASO_BY_ID[link[0]];
+  if(!c)return'(caso não carregado)';
+  return c.fields[F.c.palavra]||'(sem palavra-chave)';
+}
+function casoProcesso(rec){
+  const link=rec.fields[F.p.caso];
+  if(!link||!link.length)return'';
+  const c=CASO_BY_ID[link[0]];
+  return c?(c.fields[F.c.processo]||''):'';
+}
+function assistFromPrazo(rec){
+  const link=rec.fields[F.p.assistente];
+  if(!link||!link.length)return null;
+  return ASSIST_BY_ID[link[0]]||null;
+}
+function escHtml(s){return(s==null?'':String(s)).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+
+// ===== NAV =====
+let CURRENT='lista';
+let CAL_DATE=new Date();
+document.querySelectorAll('nav button').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');CURRENT=b.dataset.tab;render();
+  };
+});
+
+// ===== RENDER =====
+function render(){
+  updateAlertasBadge();
+  const c=document.getElementById('content');c.innerHTML='';
+  if(CURRENT==='lista'){
+    c.appendChild(renderAlertsBanner());
+    c.appendChild(renderLista({mode:'atuais'}));
+  }
+  else if(CURRENT==='calendario')c.appendChild(renderCalendario());
+  else if(CURRENT==='passados')c.appendChild(renderPassados());
+  else if(CURRENT==='alertas')c.appendChild(renderAlertasPage());
+}
+function updateAlertasBadge(){
+  const ignored=getIgnored();
+  const n=[...DATA.pje,...DATA.gmail].filter(a=>!ignored.includes(a.id)).length;
+  const b=document.getElementById('alertasBadge');
+  if(!b)return;
+  if(n>0){b.textContent=n;b.style.display='inline-block';}else b.style.display='none';
+}
+
+// ----- ALERTAS -----
+const IGNORED_KEY='prazos_ignored_alerts';
+function getIgnored(){try{return JSON.parse(localStorage.getItem(IGNORED_KEY)||'[]');}catch(e){return[];}}
+function ignoreAlert(id){const a=getIgnored();if(!a.includes(id))a.push(id);localStorage.setItem(IGNORED_KEY,JSON.stringify(a));render();}
+
+function getActiveAlerts(){
+  const ignored=getIgnored();
+  return [
+    ...DATA.pje.map(a=>Object.assign({_src:'PJe'},a)),
+    ...DATA.gmail.map(a=>Object.assign({_src:'Gmail'},a))
+  ].filter(a=>!ignored.includes(a.id));
+}
+function renderAlertsBanner(){
+  const wrap=document.createElement('div');
+  const all=getActiveAlerts();
+  if(!all.length)return wrap;
+  const sec=document.createElement('div');sec.className='section warn';
+  sec.style.cursor='pointer';
+  sec.innerHTML='<h2>⚠️ '+all.length+' prazo(s) descoberto(s) não agendado(s) <span class="cnt">Ver aba Alertas →</span></h2>'+
+    '<div style="font-size:13px;color:#8a6a00">Perícias e laudos detectados via PJe/Gmail que ainda não estão no Airtable. Clique para revisar e agendar.</div>';
+  sec.onclick=()=>{CURRENT='alertas';document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab==='alertas'));render();};
+  wrap.appendChild(sec);
+  return wrap;
+}
+function renderAlertasPage(){
+  const wrap=document.createElement('div');
+  const all=getActiveAlerts();
+  const sec=document.createElement('div');sec.className='section';
+  sec.innerHTML='<h2>⚠️ Alertas de Prazos Descobertos <span class="cnt">'+all.length+'</span></h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Prazos (perícias, manifestações, laudos) detectados automaticamente via PJe (TecJustiça) e Gmail que ainda não estão agendados no Airtable. Use "Agendar Prazo" para criar o registro, ou "Ignorar" para descartar.</div>';
+  if(!all.length){
+    sec.innerHTML+='<div class="empty">Nenhum alerta pendente no momento.<br><small>Os arquivos <code>pje-alerts.json</code> e <code>gmail-alerts.json</code> são alimentados por automação externa (Claude Code / n8n consultando TecJustiça MCP e Gmail MCP).</small></div>';
+    wrap.appendChild(sec);return wrap;
+  }
+  // Group by source
+  const pjeAlerts=all.filter(a=>a._src==='PJe');
+  const gmailAlerts=all.filter(a=>a._src==='Gmail');
+  if(pjeAlerts.length){
+    const h=document.createElement('div');h.className='group-head';h.textContent='PJe / TecJustiça ('+pjeAlerts.length+')';
+    sec.appendChild(h);
+    pjeAlerts.forEach(a=>sec.appendChild(buildAlertRow(a)));
+  }
+  if(gmailAlerts.length){
+    const h=document.createElement('div');h.className='group-head';h.textContent='Gmail ('+gmailAlerts.length+')';
+    sec.appendChild(h);
+    gmailAlerts.forEach(a=>sec.appendChild(buildAlertRow(a)));
+  }
+  wrap.appendChild(sec);
+  return wrap;
+}
+function buildAlertRow(a){
+  const el=document.createElement('div');el.className='alert '+(a.urgencia==='alta'?'alta':'');
+  const icon=a.urgencia==='alta'?'🔴':'⚠️';
+  const srcLabel=a._src==='PJe'?'PJe — '+(a.numeroProcesso||''):'Gmail — '+(a.de||'');
+  el.innerHTML='<div class="icon">'+icon+'</div>'+
+    '<div class="body"><div class="src">'+escHtml(srcLabel)+'</div>'+
+    '<div class="t">'+escHtml(a.casoNome||a.assunto||'')+'</div>'+
+    '<div class="d">'+escHtml(a.descricao||a.resumo||'')+'</div></div>'+
+    '<div class="actions"></div>';
+  const acts=el.querySelector('.actions');
+  const ag=document.createElement('button');ag.className='btn sm';ag.textContent='Agendar Prazo';
+  ag.onclick=()=>openNovoPrazoModal(a);
+  const ig=document.createElement('button');ig.className='btn sm gray';ig.textContent='Ignorar';
+  ig.onclick=()=>ignoreAlert(a.id);
+  acts.appendChild(ag);acts.appendChild(ig);
+  return el;
+}
+
+// ----- LISTA -----
+let LIST_FILTER_TIPO='',LIST_GROUP='semana';
+function renderLista(){
+  const sec=document.createElement('div');sec.className='section';
+  sec.innerHTML='<h2>Prazos <span class="cnt">'+DATA.prazos.length+'</span></h2>';
+  const tb=document.createElement('div');tb.className='toolbar';
+  tb.innerHTML='<span>Agrupar:</span>'+
+    '<select id="grpSel"><option value="semana">Por semana</option><option value="tipo">Por tipo</option></select>'+
+    '<span>Tipo:</span>'+
+    '<select id="tipoSel"><option value="">Todos</option>'+
+      Object.keys(TIPO_CLASS).map(t=>'<option value="'+t+'">'+t+'</option>').join('')+
+    '</select>';
+  sec.appendChild(tb);
+  tb.querySelector('#grpSel').value=LIST_GROUP;
+  tb.querySelector('#tipoSel').value=LIST_FILTER_TIPO;
+  tb.querySelector('#grpSel').onchange=e=>{LIST_GROUP=e.target.value;render();};
+  tb.querySelector('#tipoSel').onchange=e=>{LIST_FILTER_TIPO=e.target.value;render();};
+
+  let items=DATA.prazos.slice().filter(r=>r.fields[F.p.data]);
+  if(LIST_FILTER_TIPO){
+    items=items.filter(r=>{const v=r.fields[F.p.tipo];return v&&(Array.isArray(v)?v.includes(LIST_FILTER_TIPO):v===LIST_FILTER_TIPO);});
+  }
+  items.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
+  if(!items.length){sec.innerHTML+='<div class="empty">Nenhum prazo encontrado.</div>';return sec;}
+
+  const groups={};
+  items.forEach(r=>{
+    let key;
+    if(LIST_GROUP==='tipo'){key=firstTipo(r)||'Outro';}
+    else{
+      const d=new Date(r.fields[F.p.data]);
+      const onejan=new Date(d.getFullYear(),0,1);
+      const w=Math.ceil(((d-onejan)/86400000+onejan.getDay()+1)/7);
+      key='Semana '+w+' · '+d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+    }
+    (groups[key]=groups[key]||[]).push(r);
+  });
+  const list=document.createElement('div');list.className='card-list';
+  Object.keys(groups).forEach(k=>{
+    const h=document.createElement('div');h.className='group-head';h.textContent=k;list.appendChild(h);
+    groups[k].forEach(r=>list.appendChild(buildPrazoCard(r)));
+  });
+  sec.appendChild(list);
+  return sec;
+}
+
+function buildPrazoCard(r){
+  const tipo=firstTipo(r)||'Outro';
+  const cls=tipoClass(tipo);
+  const data=r.fields[F.p.data];
+  const du=data?daysUntil(data):null;
+  const urgent=du!=null&&du>=0&&du<=3;
+  const card=document.createElement('div');card.className='prazo-card '+cls;
+  const local=r.fields[F.p.local]||r.fields[F.p.cidade]||'';
+  const obs=r.fields[F.p.obs]||'';
+  const ass=assistFromPrazo(r);
+  const statusAss=r.fields[F.p.statusAss]||'';
+  card.innerHTML='<div class="head"><div class="caso">'+escHtml(casoNome(r))+'</div>'+
+    '<span class="tag t-'+cls+(urgent?' urg':'')+'">'+escHtml(tipo)+'</span></div>'+
+    '<div class="when">📅 '+escHtml(fmtDate(data))+(du!=null?' <span style="color:'+(du<0?'#a82929':du<=3?'#d64545':'#6b7c8c')+'">('+(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d')+')</span>':'')+'</div>'+
+    '<div class="meta">'+
+      (casoProcesso(r)?'<div><b>Processo:</b> '+escHtml(casoProcesso(r))+'</div>':'')+
+      (local?'<div><b>Local:</b> '+escHtml(local)+'</div>':'')+
+      (ass?'<div><b>Assistente:</b> '+escHtml(ass.fields[F.a.nome]||'')+'</div>':'')+
+      (statusAss?'<div><b>Status Ass.:</b> '+escHtml(statusAss)+'</div>':'')+
+      (obs?'<div><b>Obs:</b> '+escHtml(obs)+'</div>':'')+
+    '</div>'+
+    '<div class="checks">'+
+      chk(r,F.p.preLaudo,'Pré-Laudo')+
+      chk(r,F.p.confAss,'Conf. Assist.')+
+      chk(r,F.p.relato,'Relato')+
+    '</div>';
+  // bind checkboxes
+  card.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange=async()=>{
+      const fid=cb.dataset.fid;const recId=cb.dataset.rec;const val=cb.checked;
+      try{
+        await patchRecord(TBL.prazos,recId,{[fid]:val});
+        const rec=DATA.prazos.find(x=>x.id===recId);if(rec)rec.fields[fid]=val;
+        toast('Salvo','ok');
+      }catch(e){cb.checked=!val;toast('Erro: '+e.message,'err');}
+    };
+  });
+  return card;
+}
+function chk(r,fid,label){
+  const on=!!r.fields[fid];
+  return '<label><input type="checkbox" data-rec="'+r.id+'" data-fid="'+fid+'"'+(on?' checked':'')+'> '+label+'</label>';
+}
+
+// ----- CALENDÁRIO -----
+function renderCalendario(){
+  const sec=document.createElement('div');sec.className='section';
+  const y=CAL_DATE.getFullYear(),m=CAL_DATE.getMonth();
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  const start=new Date(first);start.setDate(1-first.getDay());
+  const byDay={};
+  DATA.prazos.forEach(r=>{const d=r.fields[F.p.data];if(d)(byDay[dayKey(d)]=byDay[dayKey(d)]||[]).push(r);});
+  const head=document.createElement('div');head.className='cal-head';
+  const ttl=CAL_DATE.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  head.innerHTML='<div class="nav"><button class="btn sm gray" id="prevM">‹</button>'+
+    '<button class="btn sm gray" id="todayM">Hoje</button>'+
+    '<button class="btn sm gray" id="nextM">›</button></div>'+
+    '<div class="ttl">'+ttl+'</div><div></div>';
+  sec.appendChild(head);
+  head.querySelector('#prevM').onclick=()=>{CAL_DATE=new Date(y,m-1,1);render();};
+  head.querySelector('#nextM').onclick=()=>{CAL_DATE=new Date(y,m+1,1);render();};
+  head.querySelector('#todayM').onclick=()=>{CAL_DATE=new Date();render();};
+  const grid=document.createElement('div');grid.className='cal';
+  ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(d=>{
+    const e=document.createElement('div');e.className='dow';e.textContent=d;grid.appendChild(e);
+  });
+  const todayK=dayKey(new Date().toISOString());
+  for(let i=0;i<42;i++){
+    const d=new Date(start);d.setDate(start.getDate()+i);
+    const k=dayKey(d.toISOString());
+    const cell=document.createElement('div');cell.className='day'+(d.getMonth()!==m?' other':'')+(k===todayK?' today':'');
+    cell.innerHTML='<div class="dn">'+d.getDate()+'</div>';
+    (byDay[k]||[]).forEach(r=>{
+      const tipo=firstTipo(r)||'Outro';
+      const cls=tipoClass(tipo);
+      const du=daysUntil(r.fields[F.p.data]);
+      const urgent=du>=0&&du<=3;
+      const chip=document.createElement('div');chip.className='chip '+cls+(urgent?' urg':'');
+      chip.textContent=casoNome(r);
+      chip.title=tipo+' — '+fmtDate(r.fields[F.p.data])+' — '+casoNome(r);
+      chip.onclick=()=>openDetalheModal(r);
+      cell.appendChild(chip);
+    });
+    grid.appendChild(cell);
+  }
+  sec.appendChild(grid);
+  // legend
+  const leg=document.createElement('div');leg.style.cssText='margin-top:14px;display:flex;gap:10px;flex-wrap:wrap;font-size:12px';
+  Object.keys(TIPO_CLASS).forEach(t=>{
+    leg.innerHTML+='<span class="tag t-'+TIPO_CLASS[t]+'">'+t+'</span>';
+  });
+  sec.appendChild(leg);
+  return sec;
+}
+
+// ----- PERÍCIAS -----
+function renderPericias(){
+  const wrap=document.createElement('div');
+  const pericias=DATA.prazos.filter(r=>{
+    const t=r.fields[F.p.tipo];
+    const isPer=t&&(Array.isArray(t)?t.includes('Perícia'):t==='Perícia');
+    return isPer&&!r.fields[F.p.finalizado];
+  }).sort((a,b)=>new Date(a.fields[F.p.data]||0)-new Date(b.fields[F.p.data]||0));
+  const hdr=document.createElement('div');hdr.className='section';
+  hdr.innerHTML='<h2>Perícias em aberto <span class="cnt">'+pericias.length+'</span></h2>'+
+    (pericias.length?'':'<div class="empty">Nenhuma perícia em aberto.</div>');
+  wrap.appendChild(hdr);
+  pericias.forEach(r=>wrap.appendChild(buildPericiaBox(r)));
+  return wrap;
+}
+
+function buildPericiaBox(r){
+  const box=document.createElement('div');box.className='pericia-box';
+  const ass=assistFromPrazo(r);
+  const du=daysUntil(r.fields[F.p.data]);
+  const urgColor=du<0?'#a82929':du<=3?'#d64545':'#005F88';
+  box.innerHTML='<h3>'+escHtml(casoNome(r))+'</h3>'+
+    '<div class="proc">'+escHtml(casoProcesso(r)||'(sem número)')+'</div>'+
+    '<div class="grid">'+
+      '<div><b>Data/Hora</b><span style="font-weight:700;color:'+urgColor+'">'+escHtml(fmtDate(r.fields[F.p.data]))+'</span></div>'+
+      '<div><b>Tipo de Perícia</b>'+escHtml(r.fields[F.p.tipoPer]||'-')+'</div>'+
+      '<div><b>Local</b>'+escHtml(r.fields[F.p.local]||'-')+'</div>'+
+      '<div><b>Cidade/Estado</b>'+escHtml(r.fields[F.p.cidade]||'-')+'</div>'+
+      '<div><b>Assistente</b>'+(ass?escHtml(ass.fields[F.a.nome]||'-')+'<br><small style="color:#6b7c8c">'+escHtml(ass.fields[F.a.phone]||'')+' · '+escHtml(ass.fields[F.a.email]||'')+'</small>':'(não definido)')+'</div>'+
+      '<div><b>Status Assistente</b><input type="text" data-fid="'+F.p.statusAss+'" value="'+escHtml(r.fields[F.p.statusAss]||'')+'"></div>'+
+      '<div><b>Valor Assistente (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
+      '<div style="grid-column:1/-1"><b>Observação</b><textarea data-fid="'+F.p.obs+'">'+escHtml(r.fields[F.p.obs]||'')+'</textarea></div>'+
+    '</div>'+
+    '<div class="chks">'+
+      '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmado pelo Assistente</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.preLaudo+'"'+(r.fields[F.p.preLaudo]?' checked':'')+'> Pré-Laudo Enviado</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.relato+'"'+(r.fields[F.p.relato]?' checked':'')+'> Relato Solicitado</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.remarc+'"'+(r.fields[F.p.remarc]?' checked':'')+'> Perícia Remarcada</label>'+
+    '</div>'+
+    '<div class="foot"><span class="msg"></span><button class="btn green">Marcar como Finalizado</button></div>';
+  const msg=box.querySelector('.msg');
+  async function save(fid,val){
+    try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;msg.textContent='Salvo';msg.className='msg ok';setTimeout(()=>msg.textContent='',2000);}
+    catch(e){msg.textContent='Erro: '+e.message;msg.className='msg err';}
+  }
+  box.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange=()=>save(cb.dataset.fid,cb.checked);
+  });
+  box.querySelectorAll('input[type=text],input[type=number],textarea').forEach(inp=>{
+    inp.onchange=()=>{
+      let v=inp.value;
+      if(inp.type==='number')v=v===''?null:parseFloat(v);
+      save(inp.dataset.fid,v);
+    };
+  });
+  box.querySelector('button.btn.green').onclick=async()=>{
+    if(!confirm('Marcar esta perícia como finalizada?'))return;
+    try{await patchRecord(TBL.prazos,r.id,{[F.p.finalizado]:true});toast('Finalizado','ok');loadData();}
+    catch(e){toast('Erro: '+e.message,'err');}
+  };
+  return box;
+}
+
+// ----- MODAL DETALHE -----
+function openDetalheModal(r){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const tipo=firstTipo(r)||'Outro';
+  m.innerHTML='<h2>'+escHtml(casoNome(r))+'</h2>'+
+    '<div style="margin-bottom:12px"><span class="tag t-'+tipoClass(tipo)+'">'+escHtml(tipo)+'</span></div>'+
+    '<div style="font-size:14px;line-height:1.8;color:#003c56">'+
+    '<div><b>Data:</b> '+escHtml(fmtDate(r.fields[F.p.data]))+'</div>'+
+    (casoProcesso(r)?'<div><b>Processo:</b> '+escHtml(casoProcesso(r))+'</div>':'')+
+    (r.fields[F.p.local]?'<div><b>Local:</b> '+escHtml(r.fields[F.p.local])+'</div>':'')+
+    (r.fields[F.p.cidade]?'<div><b>Cidade:</b> '+escHtml(r.fields[F.p.cidade])+'</div>':'')+
+    (r.fields[F.p.obs]?'<div><b>Observação:</b> '+escHtml(r.fields[F.p.obs])+'</div>':'')+
+    '</div><div class="foot"><button class="btn gray" id="cl">Fechar</button></div>';
+  bg.appendChild(m);document.getElementById('modalHost').appendChild(bg);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+}
+
+// ----- MODAL NOVO PRAZO -----
+document.getElementById('novoPrazoBtn').onclick=()=>openNovoPrazoModal();
+function openNovoPrazoModal(prefill){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const tipos=Object.keys(TIPO_CLASS);
+  m.innerHTML='<h2>Novo Prazo</h2><div class="fg">'+
+    '<div class="full"><label>Caso</label><select id="fCaso"><option value="">— selecione —</option>'+
+      DATA.casos.map(c=>'<option value="'+c.id+'">'+escHtml(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+escHtml(c.fields[F.c.processo]):'')+'</option>').join('')+
+    '</select></div>'+
+    '<div class="full"><label>Tipo de Prazo</label><select id="fTipo">'+tipos.map(t=>'<option>'+t+'</option>').join('')+'</select></div>'+
+    '<div><label>Data e Hora</label><input type="datetime-local" id="fData"></div>'+
+    '<div><label>Tipo de Perícia</label><select id="fTipoPer"><option value="">—</option><option>Engenharia</option><option>Medicina</option></select></div>'+
+    '<div class="full"><label>Assistente</label><select id="fAss"><option value="">—</option>'+
+      DATA.assist.map(a=>'<option value="'+a.id+'">'+escHtml(a.fields[F.a.nome]||'')+'</option>').join('')+
+    '</select></div>'+
+    '<div class="full"><label>Local da Perícia</label><input type="text" id="fLocal"></div>'+
+    '<div class="full"><label>Cidade/Estado</label><input type="text" id="fCidade"></div>'+
+    '<div class="full"><label>Observação</label><textarea id="fObs"></textarea></div>'+
+    '</div><div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">Salvar</button></div>';
+  bg.appendChild(m);document.getElementById('modalHost').appendChild(bg);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+  if(prefill){
+    if(prefill.casoId)m.querySelector('#fCaso').value=prefill.casoId;
+    if(prefill.casoSugerido)m.querySelector('#fCaso').value=prefill.casoSugerido;
+    if(prefill.tipo==='laudo_publicado')m.querySelector('#fTipo').value='Manifestação ao Laudo';
+    if(prefill.tipo==='pericia_designada')m.querySelector('#fTipo').value='Perícia';
+    if(prefill.descricao||prefill.resumo)m.querySelector('#fObs').value=prefill.descricao||prefill.resumo;
+  }
+  const msg=m.querySelector('.msg');
+  m.querySelector('#sv').onclick=async()=>{
+    const casoId=m.querySelector('#fCaso').value;
+    const tipo=m.querySelector('#fTipo').value;
+    const data=m.querySelector('#fData').value;
+    const tipoPer=m.querySelector('#fTipoPer').value;
+    const assId=m.querySelector('#fAss').value;
+    const local=m.querySelector('#fLocal').value;
+    const cidade=m.querySelector('#fCidade').value;
+    const obs=m.querySelector('#fObs').value;
+    if(!casoId||!tipo||!data){msg.textContent='Caso, tipo e data são obrigatórios';msg.className='msg err';return;}
+    const fields={};
+    fields[F.p.caso]=[casoId];
+    fields[F.p.tipo]=[tipo];
+    fields[F.p.data]=new Date(data).toISOString();
+    if(tipoPer)fields[F.p.tipoPer]=tipoPer;
+    if(assId)fields[F.p.assistente]=[assId];
+    if(local)fields[F.p.local]=local;
+    if(cidade)fields[F.p.cidade]=cidade;
+    if(obs)fields[F.p.obs]=obs;
+    try{
+      await createRecord(TBL.prazos,fields);
+      toast('Prazo criado','ok');
+      if(prefill&&prefill.id)ignoreAlert(prefill.id);
+      close();loadData();
+    }catch(e){msg.textContent='Erro: '+e.message;msg.className='msg err';}
+  };
+}
+
+// ===== AUTO LOAD =====
+loadData();
+</script>
+</body>
+</html>
