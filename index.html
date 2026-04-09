@@ -420,7 +420,8 @@ function renderAlertasPage(){
 }
 function buildAlertRow(a){
   const el=document.createElement('div');el.className='alert '+(a.urgencia==='alta'?'alta':'');
-  const icon=a.urgencia==='alta'?'🔴':'⚠️';
+  const isManifPerdida=a.tipo==='manifestacao_perdida';
+  const icon=isManifPerdida?'📋':(a.urgencia==='alta'?'🔴':'⚠️');
   const srcLabel=a._src==='PJe'?'PJe — '+(a.numeroProcesso||''):'Gmail — '+(a.de||'');
   el.innerHTML='<div class="icon">'+icon+'</div>'+
     '<div class="body"><div class="src">'+escHtml(srcLabel)+'</div>'+
@@ -428,12 +429,72 @@ function buildAlertRow(a){
     '<div class="d">'+escHtml(a.descricao||a.resumo||'')+'</div></div>'+
     '<div class="actions"></div>';
   const acts=el.querySelector('.actions');
-  const ag=document.createElement('button');ag.className='btn sm';ag.textContent='Agendar Prazo';
-  ag.onclick=()=>openNovoPrazoModal(a);
+  if(isManifPerdida){
+    const enc=document.createElement('button');enc.className='btn sm green';enc.textContent='Encerrar p/ Cobrança';
+    enc.onclick=()=>openEncerrarCobrancaModal(a);
+    acts.appendChild(enc);
+  }else{
+    const ag=document.createElement('button');ag.className='btn sm';ag.textContent='Agendar Prazo';
+    ag.onclick=()=>openNovoPrazoModal(a);
+    acts.appendChild(ag);
+  }
   const ig=document.createElement('button');ig.className='btn sm gray';ig.textContent='Ignorar';
   ig.onclick=()=>ignoreAlert(a.id);
-  acts.appendChild(ag);acts.appendChild(ig);
+  acts.appendChild(ig);
   return el;
+}
+
+// Modal: Encerrar para Cobrança (manifestação perdida)
+function openEncerrarCobrancaModal(alert){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const dLaudo=alert.dataLaudo||alert.dataDeteccao||new Date().toISOString().slice(0,10);
+  // data presumida: laudo + 15 dias
+  const dPresumida=new Date(dLaudo);dPresumida.setDate(dPresumida.getDate()+15);
+  const dPresumidaStr=dPresumida.toISOString().slice(0,10);
+  // resolver casoId
+  const procIdx=buildProcessoIndex();
+  let casoId=alert._casoId||alert.casoId||alert.casoSugerido||'';
+  if(!casoId&&alert.numeroProcesso){casoId=procIdx[alert.numeroProcesso.replace(/\D/g,'')]||'';}
+  m.innerHTML='<h2>📋 Encerrar para Cobrança</h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Isso vai criar um prazo de <b>Manifestação ao Laudo</b> retroativo (marcado como finalizado) no Airtable. A automação existente vai mover o caso para <b>Encerrado PARA COBRANÇA</b> automaticamente.</div>'+
+    '<div class="fg">'+
+      '<div class="full"><label>Caso</label><select id="fCaso"><option value="">— selecione —</option>'+
+        DATA.casos.map(c=>'<option value="'+c.id+'"'+(c.id===casoId?' selected':'')+'>'+escHtml(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+escHtml(c.fields[F.c.processo]):'')+'</option>').join('')+
+      '</select></div>'+
+      '<div><label>Data do Laudo (PJe)</label><input type="date" id="fLaudo" value="'+escHtml(dLaudo)+'"></div>'+
+      '<div><label>Data Presumida da Manifestação</label><input type="date" id="fManif" value="'+escHtml(dPresumidaStr)+'"></div>'+
+      '<div class="full"><label>Observação</label><textarea id="fObs">Registrado retroativamente via dashboard. Laudo publicado em '+escHtml(dLaudo)+' detectado via PJe. Cliente/advogados não avisaram.</textarea></div>'+
+    '</div>'+
+    '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">Confirmar e Encerrar</button></div>';
+  document.getElementById('modalHost').appendChild(bg);bg.appendChild(m);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+  const msg=m.querySelector('.msg');
+  // auto-recalc presumida quando muda laudo
+  m.querySelector('#fLaudo').onchange=e=>{
+    const d=new Date(e.target.value);d.setDate(d.getDate()+15);
+    m.querySelector('#fManif').value=d.toISOString().slice(0,10);
+  };
+  m.querySelector('#sv').onclick=async()=>{
+    const cid=m.querySelector('#fCaso').value;
+    const dManif=m.querySelector('#fManif').value;
+    const obs=m.querySelector('#fObs').value;
+    if(!cid||!dManif){msg.textContent='Caso e data são obrigatórios';msg.className='msg err';return;}
+    const fields={};
+    fields[F.p.caso]=[cid];
+    fields[F.p.tipo]=['Manifestação ao Laudo'];
+    fields[F.p.data]=new Date(dManif+'T12:00:00').toISOString();
+    fields[F.p.finalizado]=true;
+    if(obs)fields[F.p.obs]=obs;
+    try{
+      await createRecord(TBL.prazos,fields);
+      toast('Prazo criado — automação do Airtable vai encerrar o caso','ok');
+      if(alert.id)ignoreAlert(alert.id);
+      close();loadData();
+    }catch(e){msg.textContent='Erro: '+e.message;msg.className='msg err';}
+  };
 }
 
 // ----- LISTA (atuais/passados) -----
