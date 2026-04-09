@@ -28,8 +28,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .tag{display:inline-block;padding:3px 10px;border-radius:11px;font-size:11px;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.3px;color:#fff}
 .tag.t-pericia{background:#E8A838}
 .tag.t-manif{background:#4CAF50}
-.tag.t-prelaudo{background:#009688}
-.tag.t-contratar{background:#00BCD4}
+.tag.t-manifc{background:#009688}
 .tag.t-quesitos{background:#2196F3}
 .tag.t-outro{background:#6b7c8c}
 .tag.urg{background:#d64545;animation:pulse 1.6s infinite}
@@ -52,8 +51,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .btn.iconbtn:hover{color:#d64545;background:#fdecec}
 .prazo-card.pericia{border-left-color:#E8A838}
 .prazo-card.manif{border-left-color:#4CAF50}
-.prazo-card.prelaudo{border-left-color:#009688}
-.prazo-card.contratar{border-left-color:#00BCD4}
+.prazo-card.manifc{border-left-color:#009688}
 .prazo-card.quesitos{border-left-color:#2196F3}
 .prazo-card .head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
 .prazo-card .caso{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:17px;color:#003c56;line-height:1.2}
@@ -77,8 +75,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 .cal .day .chip{background:#fff;border-left:3px solid #00AEEF;padding:3px 5px;border-radius:3px;font-size:10px;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
 .cal .day .chip.pericia{border-left-color:#E8A838}
 .cal .day .chip.manif{border-left-color:#4CAF50}
-.cal .day .chip.prelaudo{border-left-color:#009688}
-.cal .day .chip.contratar{border-left-color:#00BCD4}
+.cal .day .chip.manifc{border-left-color:#009688}
 .cal .day .chip.quesitos{border-left-color:#2196F3}
 .cal .day .chip.urg{background:#fdecec;border-left-color:#d64545}
 /* ===== Perícia cards expandidos ===== */
@@ -169,7 +166,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 const BASE='appTEAYT5TYhnQwTn';
 const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf'};
 const F={
-  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE'},
+  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu'},
   c:{palavra:'fldj5FBvJfRd0BC22',processo:'fldzUYMqa3SNmcaiy',fase:'fld86RIjqxRbIyK2H',tipo:'fldQFTIMb6qh8hvfN',cliente:'fld7ddtpPu5BrgIoL',prazos:'fldOwEr9lEEitNdl7'},
   a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG'}
 };
@@ -272,8 +269,7 @@ document.getElementById('reloadBtn').onclick=loadData;
 
 // ===== HELPERS =====
 const TIPO_CLASS={
-  'Perícia':'pericia','Manifestação ao Laudo':'manif','Enviar Pré-laudo':'prelaudo',
-  'Contratar Assistente':'contratar','Quesitos e Assistentes':'quesitos'
+  'Quesitos e Assistentes':'quesitos','Perícia':'pericia','Manifestação ao Laudo':'manif','Manifestação Complementar':'manifc'
 };
 function tipoClass(tipo){return TIPO_CLASS[tipo]||'outro';}
 function firstTipo(rec){const v=rec.fields[F.p.tipo];if(!v)return null;return Array.isArray(v)?v[0]:v;}
@@ -498,7 +494,7 @@ function openEncerrarCobrancaModal(alert){
 }
 
 // ----- LISTA (atuais/passados) -----
-const TIPO_ORDER=['Quesitos e Assistentes','Contratar Assistente','Enviar Pré-laudo','Perícia','Manifestação ao Laudo'];
+const TIPO_ORDER=['Quesitos e Assistentes','Perícia','Manifestação ao Laudo','Manifestação Complementar'];
 let SORT_ATUAIS='tipo';
 const STATUS_ASS_OPTS=['Não contratado','Contratado','Confirmado','Não confirmado','Compareceu','Não compareceu'];
 const TIPO_PER_OPTS=['Medicina','Engenharia'];
@@ -689,29 +685,41 @@ function renderCalendario(){
 const PERICIA_EXPANDED={};
 function buildPericiaBox(r){
   const box=document.createElement('div');box.className='pericia-box';
-  box.style.marginBottom='10px';box.style.padding='12px 16px';
+  box.style.marginBottom='10px';box.style.padding='14px 18px';
   const ass=assistFromPrazo(r);
   const du=r.fields[F.p.data]?daysUntil(r.fields[F.p.data]):null;
   const urgColor=du==null?'#005F88':(du<0?'#a82929':du<=3?'#d64545':'#005F88');
   const urgent=du!=null&&du>=0&&du<=3;
   const expanded=!!PERICIA_EXPANDED[r.id];
   const due=du!=null?(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d'):'';
-  // HEAD (always visible, compact one-line)
+  const data=r.fields[F.p.data];
+  const dataStr=data?new Date(data).toLocaleDateString('pt-BR'):'';
+  const horaStr=data?new Date(data).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+  const tipoPer=r.fields[F.p.tipoPer]||'';
+  const local=r.fields[F.p.local]||'';
+  const cidade=r.fields[F.p.cidade]||'';
+  const realizada=!!r.fields[F.p.realizada];
+  const remarcada=!!r.fields[F.p.remarc];
+  // HEAD: dados fixos da perícia (sempre visível)
   const head=document.createElement('div');
-  head.style.cssText='display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap;cursor:pointer';
-  head.innerHTML='<span class="tag t-pericia'+(urgent?' urg':'')+'">Perícia</span>'+
-    '<div style="flex:1;min-width:240px">'+
-      '<div style="font-family:Barlow Condensed,sans-serif;font-size:17px;font-weight:700;color:#003c56">'+escHtml(casoNome(r))+'</div>'+
-      '<div style="font-size:12px;color:#6b7c8c">'+
-        (casoProcesso(r)?escHtml(casoProcesso(r))+' · ':'')+
-        '📅 <b style="color:'+urgColor+'">'+escHtml(fmtDate(r.fields[F.p.data]))+'</b>'+
-        (due?' ('+due+')':'')+
-        (r.fields[F.p.local]?' · '+escHtml(r.fields[F.p.local]).slice(0,60):'')+
-        (ass?' · 👤 '+escHtml(ass.fields[F.a.nome]||''):'')+
-      '</div>'+
+  head.style.cssText='cursor:pointer';
+  const tagsStatus=realizada?'<span class="tag t-manif" style="margin-left:6px">✓ Realizada</span>':(remarcada?'<span class="tag t-quesitos" style="margin-left:6px">↻ Remarcada</span>':'');
+  head.innerHTML='<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">'+
+      '<span class="tag t-pericia'+(urgent?' urg':'')+'">Perícia</span>'+
+      (tipoPer?'<span style="font-size:11px;color:#6b7c8c;text-transform:uppercase;font-weight:600;letter-spacing:.3px">'+escHtml(tipoPer)+'</span>':'')+
+      tagsStatus+
+      '<div style="flex:1"></div>'+
+      '<button class="btn iconbtn" title="Excluir" data-act="del">🗑</button>'+
+      '<button class="btn sm gray" data-act="tog">'+(expanded?'▲':'▼')+'</button>'+
     '</div>'+
-    '<button class="btn iconbtn" title="Excluir" data-act="del">🗑</button>'+
-    '<button class="btn sm gray" data-act="tog">'+(expanded?'▲ Recolher':'▼ Detalhes')+'</button>';
+    '<div style="font-family:Barlow Condensed,sans-serif;font-size:18px;font-weight:700;color:#003c56;line-height:1.2">'+escHtml(casoNome(r))+'</div>'+
+    (casoProcesso(r)?'<div style="font-size:11px;color:#6b7c8c;font-family:Barlow Condensed,sans-serif;margin-top:2px">'+escHtml(casoProcesso(r))+'</div>':'')+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 18px;margin-top:10px;font-size:13px;color:#003c56">'+
+      '<div><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Data</b>'+escHtml(dataStr)+'</div>'+
+      '<div><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Horário</b>'+escHtml(horaStr)+'</div>'+
+      '<div style="grid-column:span 2"><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Endereço</b>'+escHtml((local?local+(cidade?' · '+cidade:''):(cidade||'—')))+'</div>'+
+    '</div>'+
+    (due?'<div style="font-size:12px;margin-top:6px;color:'+urgColor+';font-weight:600">⏱ '+due+'</div>':'');
   box.appendChild(head);
 
   // BODY (collapsible)
@@ -720,23 +728,29 @@ function buildPericiaBox(r){
   const assOptions='<option value="">—</option>'+DATA.assist.map(a=>'<option value="'+a.id+'"'+(ass&&ass.id===a.id?' selected':'')+'>'+escHtml(a.fields[F.a.nome]||'')+'</option>').join('');
   const statusOpts='<option value="">—</option>'+STATUS_ASS_OPTS.map(s=>'<option'+(r.fields[F.p.statusAss]===s?' selected':'')+'>'+s+'</option>').join('');
   const tipoPerOpts='<option value="">—</option>'+TIPO_PER_OPTS.map(s=>'<option'+(r.fields[F.p.tipoPer]===s?' selected':'')+'>'+s+'</option>').join('');
+  const comentarioAss=r.fields[F.p.comentarioAss]||'';
   body.innerHTML='<div class="grid">'+
-      '<div><b>Data / Hora</b><input type="datetime-local" data-fid="'+F.p.data+'" data-type="datetime" value="'+(r.fields[F.p.data]?new Date(r.fields[F.p.data]).toISOString().slice(0,16):'')+'"></div>'+
+      '<div><b>Data / Hora</b><input type="datetime-local" data-fid="'+F.p.data+'" data-type="datetime" value="'+(data?new Date(data).toISOString().slice(0,16):'')+'"></div>'+
       '<div><b>Tipo de Perícia</b><select data-fid="'+F.p.tipoPer+'">'+tipoPerOpts+'</select></div>'+
-      '<div><b>Assistente</b><select data-fid="'+F.p.assistente+'" data-type="link">'+assOptions+'</select>'+(ass?'<small style="color:#6b7c8c;display:block;margin-top:2px">'+escHtml(ass.fields[F.a.phone]||'')+(ass.fields[F.a.email]?' · '+escHtml(ass.fields[F.a.email]):'')+'</small>':'')+'</div>'+
+      '<div><b>Local da Perícia</b><input type="text" data-fid="'+F.p.local+'" value="'+escHtml(local)+'"></div>'+
+      '<div><b>Cidade / Estado</b><input type="text" data-fid="'+F.p.cidade+'" value="'+escHtml(cidade)+'"></div>'+
+      '<div><b>Assistente Técnico</b><select data-fid="'+F.p.assistente+'" data-type="link">'+assOptions+'</select>'+(ass?'<small style="color:#6b7c8c;display:block;margin-top:2px">'+escHtml(ass.fields[F.a.phone]||'')+(ass.fields[F.a.email]?' · '+escHtml(ass.fields[F.a.email]):'')+'</small>':'')+'</div>'+
+      '<div><b>Valor Combinado (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" data-type="number" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
       '<div><b>Status do Assistente</b><select data-fid="'+F.p.statusAss+'">'+statusOpts+'</select></div>'+
-      '<div><b>Valor Assistente (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" data-type="number" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
-      '<div><b>Local da Perícia</b><input type="text" data-fid="'+F.p.local+'" value="'+escHtml(r.fields[F.p.local]||'')+'"></div>'+
-      '<div><b>Cidade / Estado</b><input type="text" data-fid="'+F.p.cidade+'" value="'+escHtml(r.fields[F.p.cidade]||'')+'"></div>'+
       '<div style="grid-column:1/-1"><b>Observação</b><textarea data-fid="'+F.p.obs+'">'+escHtml(r.fields[F.p.obs]||'')+'</textarea></div>'+
+      (comentarioAss?'<div style="grid-column:1/-1"><b>💬 Comentário do Assistente (via WhatsApp)</b><div style="background:#f8fbfd;padding:10px 12px;border-radius:6px;border-left:3px solid #00AEEF;font-size:13px;color:#003c56;white-space:pre-wrap">'+escHtml(comentarioAss)+'</div></div>':'')+
     '</div>'+
     '<div class="chks">'+
-      '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmado pelo Assistente</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.statusAss+'" data-type="statusAssContratado"'+(r.fields[F.p.statusAss]==='Contratado'||r.fields[F.p.statusAss]==='Confirmado'||r.fields[F.p.statusAss]==='Compareceu'?' checked':'')+'> Assistente Contratado</label>'+
       '<label><input type="checkbox" data-fid="'+F.p.preLaudo+'"'+(r.fields[F.p.preLaudo]?' checked':'')+'> Pré-Laudo Enviado</label>'+
-      '<label><input type="checkbox" data-fid="'+F.p.relato+'"'+(r.fields[F.p.relato]?' checked':'')+'> Relato Solicitado</label>'+
-      '<label><input type="checkbox" data-fid="'+F.p.remarc+'"'+(r.fields[F.p.remarc]?' checked':'')+'> Perícia Remarcada</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmou Presença</label>'+
     '</div>'+
-    '<div class="foot"><span class="msg"></span><button class="btn green" data-act="fin">Marcar como Finalizada</button></div>';
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef3f7;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
+      '<b style="font-size:12px;color:#6b7c8c;text-transform:uppercase">Após a perícia:</b>'+
+      '<button class="btn sm green" data-act="realizada"'+(realizada?' disabled':'')+'>✓ Perícia Realizada</button>'+
+      '<button class="btn sm orange" data-act="remarcada">↻ Perícia Remarcada</button>'+
+    '</div>'+
+    '<div class="foot" style="margin-top:10px"><span class="msg"></span></div>';
   box.appendChild(body);
 
   const msg=()=>body.querySelector('.msg');
@@ -744,7 +758,15 @@ function buildPericiaBox(r){
     try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;const m=msg();if(m){m.textContent='Salvo';m.className='msg ok';setTimeout(()=>{m.textContent='';},2000);}toast('Salvo','ok');}
     catch(e){const m=msg();if(m){m.textContent='Erro: '+e.message;m.className='msg err';}toast('Erro: '+e.message,'err');}
   }
-  body.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>save(cb.dataset.fid,cb.checked));
+  body.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    cb.onchange=()=>{
+      if(cb.dataset.type==='statusAssContratado'){
+        save(F.p.statusAss,cb.checked?'Contratado':'Não contratado');
+      }else{
+        save(cb.dataset.fid,cb.checked);
+      }
+    };
+  });
   body.querySelectorAll('input[type=text],input[type=number],input[type=datetime-local],textarea,select').forEach(inp=>{
     inp.onchange=()=>{
       let v=inp.value;const fid=inp.dataset.fid,type=inp.dataset.type;
@@ -754,17 +776,71 @@ function buildPericiaBox(r){
       save(fid,v);
     };
   });
-  body.querySelector('[data-act=fin]').onclick=async()=>{
-    if(!confirm('Marcar esta perícia como finalizada?'))return;
-    try{await patchRecord(TBL.prazos,r.id,{[F.p.finalizado]:true});toast('Finalizada','ok');loadData();}
-    catch(e){toast('Erro: '+e.message,'err');}
+  body.querySelector('[data-act=realizada]').onclick=async()=>{
+    try{
+      await patchRecord(TBL.prazos,r.id,{[F.p.realizada]:true,[F.p.finalizado]:true});
+      r.fields[F.p.realizada]=true;r.fields[F.p.finalizado]=true;
+      toast('Perícia marcada como realizada','ok');loadData();
+    }catch(e){toast('Erro: '+e.message,'err');}
   };
+  body.querySelector('[data-act=remarcada]').onclick=()=>openRemarcacaoModal(r);
   // HEAD actions
   head.querySelector('[data-act=del]').onclick=e=>{e.stopPropagation();confirmDelete(r);};
   const toggle=()=>{PERICIA_EXPANDED[r.id]=!PERICIA_EXPANDED[r.id];render();};
   head.querySelector('[data-act=tog]').onclick=e=>{e.stopPropagation();toggle();};
   head.onclick=toggle;
   return box;
+}
+
+// Modal Remarcação: finaliza perícia antiga e cria nova com data nova
+function openRemarcacaoModal(r){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const link=r.fields[F.p.caso]||[];
+  const casoId=link[0]||'';
+  const localAtual=r.fields[F.p.local]||'';
+  const cidadeAtual=r.fields[F.p.cidade]||'';
+  const tipoPerAtual=r.fields[F.p.tipoPer]||'';
+  m.innerHTML='<h2>↻ Remarcar Perícia</h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Isto vai <b>finalizar</b> esta perícia (marcada como remarcada) e criar uma <b>nova</b> perícia no mesmo caso com a data nova.</div>'+
+    '<div class="fg">'+
+      '<div><label>Nova Data e Hora</label><input type="datetime-local" id="fData"></div>'+
+      '<div><label>Tipo de Perícia</label><select id="fTipoPer"><option value="">—</option>'+TIPO_PER_OPTS.map(s=>'<option'+(tipoPerAtual===s?' selected':'')+'>'+s+'</option>').join('')+'</select></div>'+
+      '<div class="full"><label>Local</label><input type="text" id="fLocal" value="'+escHtml(localAtual)+'"></div>'+
+      '<div class="full"><label>Cidade / Estado</label><input type="text" id="fCidade" value="'+escHtml(cidadeAtual)+'"></div>'+
+      '<div class="full"><label>Motivo da remarcação (opcional)</label><textarea id="fObs"></textarea></div>'+
+    '</div>'+
+    '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn orange" id="sv">Confirmar Remarcação</button></div>';
+  document.getElementById('modalHost').appendChild(bg);bg.appendChild(m);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+  const msgEl=m.querySelector('.msg');
+  m.querySelector('#sv').onclick=async()=>{
+    const d=m.querySelector('#fData').value;
+    if(!d){msgEl.textContent='Data é obrigatória';msgEl.className='msg err';return;}
+    const tipo=m.querySelector('#fTipoPer').value;
+    const local=m.querySelector('#fLocal').value;
+    const cidade=m.querySelector('#fCidade').value;
+    const obs=m.querySelector('#fObs').value;
+    try{
+      // 1) Finalizar a antiga com remarcada=true
+      await patchRecord(TBL.prazos,r.id,{[F.p.remarc]:true,[F.p.finalizado]:true});
+      // 2) Criar nova
+      const fields={};
+      fields[F.p.caso]=[casoId];
+      fields[F.p.tipo]=['Perícia'];
+      fields[F.p.data]=new Date(d).toISOString();
+      if(tipo)fields[F.p.tipoPer]=tipo;
+      if(local)fields[F.p.local]=local;
+      if(cidade)fields[F.p.cidade]=cidade;
+      if(obs)fields[F.p.obs]='Remarcação de perícia anterior. '+obs;
+      else fields[F.p.obs]='Remarcação de perícia anterior.';
+      await createRecord(TBL.prazos,fields);
+      toast('Perícia remarcada — nova criada','ok');
+      close();loadData();
+    }catch(e){msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';}
+  };
 }
 
 // ----- MODAL DETALHE -----
