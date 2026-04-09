@@ -152,6 +152,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 <nav>
   <button data-tab="lista" class="active">Prazos Atuais</button>
   <button data-tab="calendario">Calendário</button>
+  <button data-tab="pospericia">Pós-Perícia <span id="posPericiaBadge" style="display:none;background:#E8A838;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-left:4px"></span></button>
   <button data-tab="passados">Prazos Passados</button>
   <button data-tab="alertas" id="alertasTabBtn">⚠️ Alertas <span id="alertasBadge" style="display:none;background:#d64545;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;margin-left:4px"></span></button>
 </nav>
@@ -164,9 +165,10 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 <script>
 // ===== CONFIG =====
 const BASE='appTEAYT5TYhnQwTn';
-const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf'};
+const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf',cob:'tblMSxzQ0WlFPYU8A'};
 const F={
-  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu'},
+  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu',relatorioPos:'fldB2hP0THsLfonLO',confWpp:'fldPTHA4cfxdkQVQq',cobrancas:'fldHecjc2r12cK87T'},
+  cob:{tipo:'flduuDN0KZkIxDa5E',recebido:'fldJF2iTO9MuOrvPu',valorReceber:'fldctzCHWdI5Ywslb',dataCobranca:'fld017hwmpf88pMf4',tipoPag:'fldoz03J5oMdtYtvy',relativo:'fldnJkTEACCycFShA',valorBrutoNF:'fldbtApGvyRMw0sgk',caso:'fldxNcSHI6NwRA1Ec',pago:'fldseQscWInxIjkWT',nfEmitida:'fldwiByBRFrrfqXi0',prazos:'fldTcLs9Hbhkn4hp7'},
   c:{palavra:'fldj5FBvJfRd0BC22',processo:'fldzUYMqa3SNmcaiy',fase:'fld86RIjqxRbIyK2H',tipo:'fldQFTIMb6qh8hvfN',cliente:'fld7ddtpPu5BrgIoL',prazos:'fldOwEr9lEEitNdl7'},
   a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG'}
 };
@@ -182,7 +184,7 @@ function toast(msg,kind){
 }
 
 // ===== DATA =====
-const DATA={prazos:[],casos:[],assist:[],pje:[],gmail:[]};
+const DATA={prazos:[],casos:[],assist:[],pje:[],gmail:[],posPericias:[],cobs:[]};
 const CASO_BY_ID={},ASSIST_BY_ID={};
 
 async function fetchAll(table,filterByFormula){
@@ -227,26 +229,34 @@ async function loadJSON(path){
   try{const r=await fetch(path+'?t='+Date.now());if(!r.ok)return{alerts:[]};return await r.json();}catch(e){return{alerts:[]};}
 }
 
-// Filtros por data: atuais = de ontem em diante (cache padrão)
+// Filtros
 function filterPrazosAtuais(){
   return "AND(NOT({Finalizado?}),NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-1,'days')))";
 }
 function filterPrazosRange(deIso,ateIso){
   return "AND(NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},'"+deIso+"'),IS_BEFORE({Data da Perícia},'"+ateIso+"'))";
 }
+// Pós-perícia: perícias recentes (últimos 7 dias + futuras próximas), não remarcadas
+// "A partir de agora" — só trabalha com perícias novas, não traz histórico
+function filterPosPericia(){
+  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-7,'days')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+}
 
 async function loadData(){
   const c=document.getElementById('content');
   c.innerHTML='<div class="loader"><div class="sp"></div>Carregando prazos atuais...</div>';
   try{
-    const [prazos,casos,assist,pje,gmail]=await Promise.all([
+    const [prazos,casos,assist,posPer,cobs,pje,gmail]=await Promise.all([
       fetchAll(TBL.prazos,filterPrazosAtuais()),
       fetchAll(TBL.casos),
       fetchAll(TBL.assist),
+      fetchAll(TBL.prazos,filterPosPericia()),
+      fetchAll(TBL.cob),
       loadJSON('pje-alerts.json'),
       loadJSON('gmail-alerts.json')
     ]);
     DATA.prazos=prazos;DATA.casos=casos;DATA.assist=assist;
+    DATA.posPericias=posPer;DATA.cobs=cobs;
     DATA.pje=pje.alerts||[];DATA.gmail=gmail.alerts||[];
     casos.forEach(r=>CASO_BY_ID[r.id]=r);
     assist.forEach(r=>ASSIST_BY_ID[r.id]=r);
@@ -313,12 +323,14 @@ document.querySelectorAll('nav button').forEach(b=>{
 // ===== RENDER =====
 function render(){
   updateAlertasBadge();
+  updatePosPericiaBadge();
   const c=document.getElementById('content');c.innerHTML='';
   if(CURRENT==='lista'){
     c.appendChild(renderAlertsBanner());
     c.appendChild(renderLista({mode:'atuais'}));
   }
   else if(CURRENT==='calendario')c.appendChild(renderCalendario());
+  else if(CURRENT==='pospericia')c.appendChild(renderPosPericia());
   else if(CURRENT==='passados')c.appendChild(renderPassados());
   else if(CURRENT==='alertas')c.appendChild(renderAlertasPage());
 }
@@ -327,6 +339,27 @@ function updateAlertasBadge(){
   const b=document.getElementById('alertasBadge');
   if(!b)return;
   if(n>0){b.textContent=n;b.style.display='inline-block';}else b.style.display='none';
+}
+function updatePosPericiaBadge(){
+  const n=getPosPericiasAtivas().length;
+  const b=document.getElementById('posPericiaBadge');
+  if(!b)return;
+  if(n>0){b.textContent=n;b.style.display='inline-block';}else b.style.display='none';
+}
+function getPosPericiasAtivas(){
+  // Retorna pós-perícias ativas: não remarcadas, e não tem cobrança paga linkada
+  return (DATA.posPericias||[]).filter(p=>{
+    if(p.fields[F.p.remarc])return false;
+    const cobLinks=p.fields[F.p.cobrancas]||[];
+    if(cobLinks.length){
+      const allPaid=cobLinks.every(cid=>{
+        const c=(DATA.cobs||[]).find(x=>x.id===cid);
+        return c&&(c.fields[F.cob.pago]||c.fields[F.cob.recebido]);
+      });
+      if(allPaid&&cobLinks.length)return false;
+    }
+    return true;
+  });
 }
 
 // ----- ALERTAS -----
@@ -745,10 +778,9 @@ function buildPericiaBox(r){
       '<label><input type="checkbox" data-fid="'+F.p.preLaudo+'"'+(r.fields[F.p.preLaudo]?' checked':'')+'> Pré-Laudo Enviado</label>'+
       '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmou Presença</label>'+
     '</div>'+
-    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef3f7;display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
-      '<b style="font-size:12px;color:#6b7c8c;text-transform:uppercase">Após a perícia:</b>'+
-      '<button class="btn sm green" data-act="realizada"'+(realizada?' disabled':'')+'>✓ Perícia Realizada</button>'+
-      '<button class="btn sm orange" data-act="remarcada">↻ Perícia Remarcada</button>'+
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef3f7;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
+      '<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>'+
+      '<button class="btn sm orange" data-act="remarcada">↻ Remarcar</button>'+
     '</div>'+
     '<div class="foot" style="margin-top:10px"><span class="msg"></span></div>';
   box.appendChild(body);
@@ -776,13 +808,6 @@ function buildPericiaBox(r){
       save(fid,v);
     };
   });
-  body.querySelector('[data-act=realizada]').onclick=async()=>{
-    try{
-      await patchRecord(TBL.prazos,r.id,{[F.p.realizada]:true,[F.p.finalizado]:true});
-      r.fields[F.p.realizada]=true;r.fields[F.p.finalizado]=true;
-      toast('Perícia marcada como realizada','ok');loadData();
-    }catch(e){toast('Erro: '+e.message,'err');}
-  };
   body.querySelector('[data-act=remarcada]').onclick=()=>openRemarcacaoModal(r);
   // HEAD actions
   head.querySelector('[data-act=del]').onclick=e=>{e.stopPropagation();confirmDelete(r);};
@@ -790,6 +815,153 @@ function buildPericiaBox(r){
   head.querySelector('[data-act=tog]').onclick=e=>{e.stopPropagation();toggle();};
   head.onclick=toggle;
   return box;
+}
+
+// ===== RENDER PÓS-PERÍCIA =====
+function renderPosPericia(){
+  const wrap=document.createElement('div');
+  const items=getPosPericiasAtivas().slice().sort((a,b)=>new Date(b.fields[F.p.data])-new Date(a.fields[F.p.data]));
+  const sec=document.createElement('div');sec.className='section';
+  sec.innerHTML='<h2>Pós-Perícia <span class="cnt">'+items.length+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(perícias aguardando fechamento ou cobrança)</span></h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Perícias que já aconteceram (ou deveriam ter acontecido). Aqui você marca se aconteceu, adiciona comentários do assistente, marca o relatório, e gera a cobrança. Quando a cobrança for marcada como paga, a perícia sai desta lista.</div>';
+  if(!items.length){sec.innerHTML+='<div class="empty">Nenhuma perícia pendente de pós-processamento.</div>';wrap.appendChild(sec);return wrap;}
+  items.forEach(r=>sec.appendChild(buildPosPericiaCard(r)));
+  wrap.appendChild(sec);
+  return wrap;
+}
+function buildPosPericiaCard(r){
+  const box=document.createElement('div');box.className='pericia-box';box.style.marginBottom='12px';
+  const ass=assistFromPrazo(r);
+  const data=r.fields[F.p.data];
+  const realizada=!!r.fields[F.p.realizada];
+  const remarcada=!!r.fields[F.p.remarc];
+  const relatorio=!!r.fields[F.p.relatorioPos];
+  const viaWpp=!!r.fields[F.p.confWpp];
+  const comentario=r.fields[F.p.comentarioAss]||'';
+  const cobLinks=r.fields[F.p.cobrancas]||[];
+  const cobs=cobLinks.map(cid=>(DATA.cobs||[]).find(c=>c.id===cid)).filter(Boolean);
+  // Header
+  box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:10px">'+
+      '<div style="flex:1;min-width:260px">'+
+        '<div style="font-family:Barlow Condensed,sans-serif;font-size:17px;font-weight:700;color:#003c56">'+escHtml(casoNome(r))+'</div>'+
+        (casoProcesso(r)?'<div style="font-size:11px;color:#6b7c8c;font-family:Barlow Condensed,sans-serif">'+escHtml(casoProcesso(r))+'</div>':'')+
+        '<div style="font-size:13px;color:#005F88;font-weight:600;margin-top:4px">📅 '+escHtml(fmtDate(data))+(ass?' · 👤 '+escHtml(ass.fields[F.a.nome]||''):'')+'</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+        (realizada?'<span class="tag t-manif">✓ Realizada</span>':'')+
+        (viaWpp?'<span class="tag t-quesitos" title="Confirmado pelo assistente via WhatsApp">📱 via WhatsApp</span>':'')+
+      '</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:10px">'+
+      '<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#003c56;padding:10px 12px;background:#f8fbfd;border-radius:6px;cursor:pointer">'+
+        '<input type="checkbox" data-act="realizada"'+(realizada?' checked':'')+'> <b>Perícia aconteceu</b>'+
+      '</label>'+
+      '<label style="display:flex;gap:8px;align-items:center;font-size:14px;color:#003c56;padding:10px 12px;background:#f8fbfd;border-radius:6px;cursor:pointer">'+
+        '<input type="checkbox" data-act="relatorio"'+(relatorio?' checked':'')+'> <b>Relatório pós-perícia enviado</b>'+
+      '</label>'+
+    '</div>'+
+    '<div style="margin-top:10px">'+
+      '<b style="font-size:11px;color:#6b7c8c;text-transform:uppercase;display:block;margin-bottom:4px">💬 Comentário do Assistente (como foi a perícia)</b>'+
+      '<textarea data-act="comentario" style="width:100%;padding:8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;min-height:60px">'+escHtml(comentario)+'</textarea>'+
+      (viaWpp&&comentario?'<div style="font-size:11px;color:#00AEEF;margin-top:4px;font-style:italic">📱 Comentário recebido via WhatsApp do assistente</div>':'')+
+    '</div>'+
+    '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #eef3f7">'+
+      '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'+
+        '<button class="btn sm" data-act="cobranca">💰 '+(cobs.length?'Ver/Editar Cobrança':'Preencher Cobrança')+'</button>'+
+        '<button class="btn sm orange" data-act="remarcar">↻ Perícia Remarcada</button>'+
+        '<button class="btn sm gray iconbtn" data-act="del" title="Excluir">🗑</button>'+
+      '</div>'+
+      (cobs.length?'<div style="margin-top:8px;font-size:12px;color:#003c56">'+cobs.map(c=>{
+        const pago=c.fields[F.cob.pago]||c.fields[F.cob.recebido];
+        const valor=c.fields[F.cob.valorReceber]||0;
+        return '<div>'+(pago?'✅ Paga':'⏳ Aguardando pagamento')+' · R$ '+valor.toFixed(2).replace('.',',')+'</div>';
+      }).join('')+'</div>':'')+
+    '</div>'+
+    '<div class="foot" style="margin-top:8px"><span class="msg"></span></div>';
+  const msg=()=>box.querySelector('.msg');
+  async function save(fid,val){
+    try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;toast('Salvo','ok');}
+    catch(e){toast('Erro: '+e.message,'err');}
+  }
+  box.querySelector('[data-act=realizada]').onchange=e=>save(F.p.realizada,e.target.checked);
+  box.querySelector('[data-act=relatorio]').onchange=e=>save(F.p.relatorioPos,e.target.checked);
+  const txt=box.querySelector('[data-act=comentario]');
+  txt.onchange=()=>save(F.p.comentarioAss,txt.value);
+  box.querySelector('[data-act=cobranca]').onclick=()=>openCobrancaModal(r,cobs[0]);
+  box.querySelector('[data-act=remarcar]').onclick=()=>openRemarcacaoModal(r);
+  box.querySelector('[data-act=del]').onclick=()=>confirmDelete(r);
+  return box;
+}
+
+// ===== MODAL COBRANÇA =====
+function openCobrancaModal(prazoRec,existingCob){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const link=prazoRec.fields[F.p.caso]||[];
+  const casoId=link[0]||'';
+  const valorAss=prazoRec.fields[F.p.valorAss]||'';
+  const tipoPer=prazoRec.fields[F.p.tipoPer]||'';
+  const hoje=new Date().toISOString().slice(0,10);
+  const isEdit=!!existingCob;
+  const cf=isEdit?existingCob.fields:{};
+  const pago=isEdit?(cf[F.cob.pago]||cf[F.cob.recebido]):false;
+  const tiposPag=['100% do pagamento','50% Iniciais','50% Finais','Taxa de Remarcação','Serviço especial'];
+  const relativoOpts=['Assist. Médica','Assist. de Engenharia','Remarcação'];
+  const relativoDefault=tipoPer==='Medicina'?'Assist. Médica':(tipoPer==='Engenharia'?'Assist. de Engenharia':'');
+  const currTipoPag=cf[F.cob.tipoPag]||['100% do pagamento'];
+  const currTipoPagNames=currTipoPag.map(x=>typeof x==='object'?x.name:x);
+  const currRelativo=cf[F.cob.relativo]||(relativoDefault?[relativoDefault]:[]);
+  const currRelativoNames=currRelativo.map(x=>typeof x==='object'?x.name:x);
+  m.innerHTML='<h2>💰 '+(isEdit?'Editar Cobrança':'Nova Cobrança')+'</h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Cobrança vinculada à perícia: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
+    '<div class="fg">'+
+      '<div><label>Valor a Receber (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorReceber]||valorAss||'')+'"></div>'+
+      '<div><label>Data da Cobrança</label><input type="date" id="fData" value="'+(cf[F.cob.dataCobranca]||hoje)+'"></div>'+
+      '<div class="full"><label>Tipo de Pagamento</label><select id="fTipoPag" multiple size="3">'+
+        tiposPag.map(t=>'<option'+(currTipoPagNames.includes(t)?' selected':'')+'>'+t+'</option>').join('')+
+      '</select><small style="color:#6b7c8c;font-size:11px">Ctrl+clique para múltiplos</small></div>'+
+      '<div class="full"><label>Relativo a</label><select id="fRelativo" multiple size="3">'+
+        relativoOpts.map(t=>'<option'+(currRelativoNames.includes(t)?' selected':'')+'>'+t+'</option>').join('')+
+      '</select></div>'+
+      '<div><label>Valor Bruto NF (R$)</label><input type="number" step="0.01" id="fValorBruto" value="'+(cf[F.cob.valorBrutoNF]||'')+'"></div>'+
+      '<div><label>NF Emitida?</label><select id="fNf"><option value="0"'+(!cf[F.cob.nfEmitida]?' selected':'')+'>Não</option><option value="1"'+(cf[F.cob.nfEmitida]?' selected':'')+'>Sim</option></select></div>'+
+      '<div class="full"><label><input type="checkbox" id="fPago"'+(pago?' checked':'')+'> Pagamento recebido</label></div>'+
+    '</div>'+
+    '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">'+(isEdit?'Salvar':'Criar Cobrança')+'</button></div>';
+  document.getElementById('modalHost').appendChild(bg);bg.appendChild(m);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+  const msgEl=m.querySelector('.msg');
+  m.querySelector('#sv').onclick=async()=>{
+    const valor=parseFloat(m.querySelector('#fValor').value);
+    if(isNaN(valor)||valor<=0){msgEl.textContent='Valor é obrigatório';msgEl.className='msg err';return;}
+    const fields={};
+    fields[F.cob.tipo]='Entrada';
+    fields[F.cob.valorReceber]=valor;
+    fields[F.cob.dataCobranca]=m.querySelector('#fData').value;
+    const tp=Array.from(m.querySelector('#fTipoPag').selectedOptions).map(o=>o.value);
+    if(tp.length)fields[F.cob.tipoPag]=tp;
+    const rel=Array.from(m.querySelector('#fRelativo').selectedOptions).map(o=>o.value);
+    if(rel.length)fields[F.cob.relativo]=rel;
+    const vb=parseFloat(m.querySelector('#fValorBruto').value);
+    if(!isNaN(vb))fields[F.cob.valorBrutoNF]=vb;
+    fields[F.cob.nfEmitida]=m.querySelector('#fNf').value==='1';
+    fields[F.cob.pago]=m.querySelector('#fPago').checked;
+    fields[F.cob.recebido]=m.querySelector('#fPago').checked;
+    if(!isEdit){
+      fields[F.cob.caso]=[casoId];
+      fields[F.cob.prazos]=[prazoRec.id];
+    }
+    try{
+      if(isEdit){
+        await patchRecord(TBL.cob,existingCob.id,fields);
+      }else{
+        await createRecord(TBL.cob,fields);
+      }
+      toast('Cobrança salva','ok');close();loadData();
+    }catch(e){msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';}
+  };
 }
 
 // Modal Remarcação: finaliza perícia antiga e cria nova com data nova
