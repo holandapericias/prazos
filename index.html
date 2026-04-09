@@ -368,51 +368,62 @@ function buildAlertRow(a){
   return el;
 }
 
-// ----- LISTA -----
-let LIST_FILTER_TIPO='',LIST_GROUP='semana';
-function renderLista(){
+// ----- LISTA (atuais/passados) -----
+const TIPO_ORDER=['Perícia','Manifestação ao Laudo','Enviar Pré-laudo','Contratar Assistente','Quesitos e Assistentes'];
+const PASSADOS={de:'',ate:''};
+function renderLista(opts){
+  const mode=opts.mode;
   const sec=document.createElement('div');sec.className='section';
-  sec.innerHTML='<h2>Prazos <span class="cnt">'+DATA.prazos.length+'</span></h2>';
-  const tb=document.createElement('div');tb.className='toolbar';
-  tb.innerHTML='<span>Agrupar:</span>'+
-    '<select id="grpSel"><option value="semana">Por semana</option><option value="tipo">Por tipo</option></select>'+
-    '<span>Tipo:</span>'+
-    '<select id="tipoSel"><option value="">Todos</option>'+
-      Object.keys(TIPO_CLASS).map(t=>'<option value="'+t+'">'+t+'</option>').join('')+
-    '</select>';
-  sec.appendChild(tb);
-  tb.querySelector('#grpSel').value=LIST_GROUP;
-  tb.querySelector('#tipoSel').value=LIST_FILTER_TIPO;
-  tb.querySelector('#grpSel').onchange=e=>{LIST_GROUP=e.target.value;render();};
-  tb.querySelector('#tipoSel').onchange=e=>{LIST_FILTER_TIPO=e.target.value;render();};
-
   let items=DATA.prazos.slice().filter(r=>r.fields[F.p.data]);
-  if(LIST_FILTER_TIPO){
-    items=items.filter(r=>{const v=r.fields[F.p.tipo];return v&&(Array.isArray(v)?v.includes(LIST_FILTER_TIPO):v===LIST_FILTER_TIPO);});
+  const now=new Date();now.setHours(0,0,0,0);
+  if(mode==='atuais'){
+    items=items.filter(r=>new Date(r.fields[F.p.data])>=now);
+    sec.innerHTML='<h2>Prazos Atuais <span class="cnt">'+items.length+'</span><span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">de hoje em diante</span></h2>';
+  }else{
+    // passados - use PASSADOS range
+    if(!PASSADOS.de){const d=new Date();d.setMonth(d.getMonth()-3);PASSADOS.de=d.toISOString().slice(0,10);}
+    if(!PASSADOS.ate){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.ate=d.toISOString().slice(0,10);}
+    const de=new Date(PASSADOS.de+'T00:00:00');
+    const ate=new Date(PASSADOS.ate+'T23:59:59');
+    items=items.filter(r=>{const d=new Date(r.fields[F.p.data]);return d>=de&&d<=ate;});
+    sec.innerHTML='<h2>Prazos Passados <span class="cnt">'+items.length+'</span></h2>';
+    const tb=document.createElement('div');tb.className='toolbar';
+    tb.innerHTML='<span>De:</span><input type="date" id="dDe" value="'+PASSADOS.de+'">'+
+      '<span>Até:</span><input type="date" id="dAte" value="'+PASSADOS.ate+'">'+
+      '<button class="btn sm" id="dAp">Aplicar</button>'+
+      '<button class="btn sm gray" id="dQ1">Últimos 30d</button>'+
+      '<button class="btn sm gray" id="dQ2">Últimos 90d</button>'+
+      '<button class="btn sm gray" id="dQ3">Este ano</button>';
+    sec.appendChild(tb);
+    tb.querySelector('#dAp').onclick=()=>{PASSADOS.de=tb.querySelector('#dDe').value;PASSADOS.ate=tb.querySelector('#dAte').value;render();};
+    tb.querySelector('#dQ1').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-30);PASSADOS.de=b.toISOString().slice(0,10);PASSADOS.ate=a.toISOString().slice(0,10);render();};
+    tb.querySelector('#dQ2').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-90);PASSADOS.de=b.toISOString().slice(0,10);PASSADOS.ate=a.toISOString().slice(0,10);render();};
+    tb.querySelector('#dQ3').onclick=()=>{const a=new Date();PASSADOS.de=a.getFullYear()+'-01-01';PASSADOS.ate=a.toISOString().slice(0,10);render();};
   }
-  items.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
+
   if(!items.length){sec.innerHTML+='<div class="empty">Nenhum prazo encontrado.</div>';return sec;}
 
+  // Agrupa por tipo (ordem do Airtable)
   const groups={};
-  items.forEach(r=>{
-    let key;
-    if(LIST_GROUP==='tipo'){key=firstTipo(r)||'Outro';}
-    else{
-      const d=new Date(r.fields[F.p.data]);
-      const onejan=new Date(d.getFullYear(),0,1);
-      const w=Math.ceil(((d-onejan)/86400000+onejan.getDay()+1)/7);
-      key='Semana '+w+' · '+d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  items.forEach(r=>{const t=firstTipo(r)||'Outro';(groups[t]=groups[t]||[]).push(r);});
+  const orderedKeys=TIPO_ORDER.filter(k=>groups[k]).concat(Object.keys(groups).filter(k=>!TIPO_ORDER.includes(k)));
+  orderedKeys.forEach(k=>{
+    const list=groups[k];
+    list.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
+    const h=document.createElement('div');h.className='group-head';
+    h.innerHTML='<span class="tag t-'+tipoClass(k)+'">'+escHtml(k)+'</span> <span style="color:#6b7c8c;font-size:12px;margin-left:6px">('+list.length+')</span>';
+    sec.appendChild(h);
+    if(k==='Perícia'){
+      list.forEach(r=>sec.appendChild(buildPericiaBox(r)));
+    }else{
+      const grid=document.createElement('div');grid.className='card-list';
+      list.forEach(r=>grid.appendChild(buildPrazoCard(r)));
+      sec.appendChild(grid);
     }
-    (groups[key]=groups[key]||[]).push(r);
   });
-  const list=document.createElement('div');list.className='card-list';
-  Object.keys(groups).forEach(k=>{
-    const h=document.createElement('div');h.className='group-head';h.textContent=k;list.appendChild(h);
-    groups[k].forEach(r=>list.appendChild(buildPrazoCard(r)));
-  });
-  sec.appendChild(list);
   return sec;
 }
+function renderPassados(){return renderLista({mode:'passados'});}
 
 function buildPrazoCard(r){
   const tipo=firstTipo(r)||'Outro';
@@ -507,22 +518,6 @@ function renderCalendario(){
   });
   sec.appendChild(leg);
   return sec;
-}
-
-// ----- PERÍCIAS -----
-function renderPericias(){
-  const wrap=document.createElement('div');
-  const pericias=DATA.prazos.filter(r=>{
-    const t=r.fields[F.p.tipo];
-    const isPer=t&&(Array.isArray(t)?t.includes('Perícia'):t==='Perícia');
-    return isPer&&!r.fields[F.p.finalizado];
-  }).sort((a,b)=>new Date(a.fields[F.p.data]||0)-new Date(b.fields[F.p.data]||0));
-  const hdr=document.createElement('div');hdr.className='section';
-  hdr.innerHTML='<h2>Perícias em aberto <span class="cnt">'+pericias.length+'</span></h2>'+
-    (pericias.length?'':'<div class="empty">Nenhuma perícia em aberto.</div>');
-  wrap.appendChild(hdr);
-  pericias.forEach(r=>wrap.appendChild(buildPericiaBox(r)));
-  return wrap;
 }
 
 function buildPericiaBox(r){
