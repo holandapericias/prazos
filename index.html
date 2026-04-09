@@ -898,7 +898,9 @@ function buildPericiaBox(r){
       '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmou Presença</label>'+
     '</div>'+
     '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef3f7;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
-      '<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>'+
+      (r.fields[F.p.preLaudo]
+        ?'<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm green" style="text-decoration:none">✓ Pré-Laudo Gerado · refazer</a>'
+        :'<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>')+
       '<button class="btn sm orange" data-act="remarcada">↻ Remarcar</button>'+
     '</div>'+
     '<div class="foot" style="margin-top:10px"><span class="msg"></span></div>';
