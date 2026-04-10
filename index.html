@@ -684,8 +684,8 @@ function renderLista(opts){
     sec.appendChild(tb);
     tb.querySelector('#sortSel').onchange=e=>{SORT_ATUAIS=e.target.value;render();};
   }else{
-    if(!PASSADOS.de){const d=new Date();d.setDate(d.getDate()-30);PASSADOS.de=d.toISOString().slice(0,10);}
-    if(!PASSADOS.ate){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.ate=d.toISOString().slice(0,10);}
+    if(!PASSADOS.de){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.de=d.toISOString().slice(0,10);}
+    if(!PASSADOS.ate){PASSADOS.ate=new Date().toISOString().slice(0,10);}
     sec.innerHTML='<h2>Prazos Passados <span class="cnt">'+items.length+'</span></h2>';
     const tb=document.createElement('div');tb.className='toolbar';
     tb.innerHTML='<span>De:</span><input type="date" id="dDe" value="'+PASSADOS.de+'">'+
