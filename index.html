@@ -1318,6 +1318,7 @@ function openNovoPrazoModal(prefill){
       '<input type="hidden" id="fCaso">'+
       '<div id="fCasoList" style="display:none;position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #cdd9e3;border-radius:6px;max-height:240px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px rgba(0,0,0,.1)"></div>'+
     '</div>'+
+    '<div id="dupAlert" style="display:none;background:#fffbec;border:1px solid #f3d98a;border-left:4px solid #f08c1f;padding:10px 14px;border-radius:6px;font-size:13px;color:#8a6a00;grid-column:1/-1"></div>'+
     '<div class="full"><label>Tipo de Prazo</label><select id="fTipo">'+tipos.map(t=>'<option>'+t+'</option>').join('')+'</select></div>'+
     '<div id="periciaFields" style="display:none;width:100%">'+
       '<div class="fg">'+
@@ -1342,10 +1343,32 @@ function openNovoPrazoModal(prefill){
   const inp=m.querySelector('#fCasoInput');
   const hid=m.querySelector('#fCaso');
   const list=m.querySelector('#fCasoList');
+  const dupAlert=m.querySelector('#dupAlert');
+  function checkDuplicate(){
+    const cid=hid.value;const tipo=tipoSel.value;
+    dupAlert.style.display='none';
+    if(!cid||!tipo)return;
+    // Busca prazos ativos do mesmo caso + tipo
+    const dups=DATA.prazos.filter(r=>{
+      const link=r.fields[F.p.caso]||[];
+      if(!link.includes(cid))return false;
+      if(r.fields[F.p.finalizado])return false;
+      const t=r.fields[F.p.tipo]||[];
+      const tipos=Array.isArray(t)?t.map(x=>typeof x==='object'?x.name:x):[t];
+      return tipos.includes(tipo);
+    });
+    if(!dups.length)return;
+    const d=dups[0];
+    dupAlert.innerHTML='<b>⚠️ Possível duplicata!</b> Já existe um prazo de <b>'+escHtml(tipo)+'</b> ativo para este caso'+
+      (d.fields[F.p.data]?' ('+fmtDate(d.fields[F.p.data])+')':'')+
+      '.<br>Tem certeza que quer criar outro? Se for remarcação de perícia, use o botão "↻ Remarcar" no prazo existente.';
+    dupAlert.style.display='block';
+  }
   function pickCaso(c){
     hid.value=c.id;
     inp.value=(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+c.fields[F.c.processo]:'');
     list.style.display='none';
+    checkDuplicate();
   }
   function searchCasos(q){
     if(!q||q.length<2){list.style.display='none';return;}
@@ -1380,7 +1403,7 @@ function openNovoPrazoModal(prefill){
     m.querySelector('#periciaFields').style.display=isPer?'block':'none';
     m.querySelector('#naoPericiaFields').style.display=isPer?'none':'block';
   }
-  tipoSel.onchange=toggleFields;
+  tipoSel.onchange=()=>{toggleFields();checkDuplicate();};
   toggleFields();
 
   if(prefill){
