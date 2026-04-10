@@ -667,7 +667,7 @@ const TIPO_ORDER=['Quesitos e Assistentes','Perícia','Manifestação ao Laudo',
 let SORT_ATUAIS='tipo';
 const STATUS_ASS_OPTS=['Não contratado','Contratado','Confirmado','Não confirmado','Compareceu','Não compareceu'];
 const TIPO_PER_OPTS=['Medicina','Engenharia'];
-const PASSADOS={de:'',ate:'',loaded:''};
+const PASSADOS={de:'',ate:'',loaded:'',search:''};
 function renderLista(opts){
   const mode=opts.mode;
   const sec=document.createElement('div');sec.className='section';
@@ -695,6 +695,15 @@ function renderLista(opts){
       '<button class="btn sm gray" id="dQ2">Últimos 90d</button>'+
       '<button class="btn sm gray" id="dQ3">Este ano</button>';
     sec.appendChild(tb);
+    // Busca por caso/processo
+    const searchBar=document.createElement('div');searchBar.className='toolbar';searchBar.style.marginTop='-4px';
+    searchBar.innerHTML='<span>🔍</span><input type="text" id="dSearch" placeholder="Buscar por nome do caso ou número do processo..." '+
+      'value="'+escHtml(PASSADOS.search)+'" style="flex:1;min-width:200px">'+
+      (PASSADOS.search?'<button class="btn sm gray" id="dClear">✕ Limpar</button>':'');
+    sec.appendChild(searchBar);
+    searchBar.querySelector('#dSearch').oninput=e=>{PASSADOS.search=e.target.value;render();};
+    const clrBtn=searchBar.querySelector('#dClear');
+    if(clrBtn)clrBtn.onclick=()=>{PASSADOS.search='';render();};
     const apply=(de,ate)=>{PASSADOS.de=de;PASSADOS.ate=ate;PASSADOS.loaded=de+'|'+ate;loadPassados(de,ate);};
     tb.querySelector('#dAp').onclick=()=>apply(tb.querySelector('#dDe').value,tb.querySelector('#dAte').value);
     tb.querySelector('#dQ1').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-30);apply(b.toISOString().slice(0,10),a.toISOString().slice(0,10));};
@@ -703,6 +712,16 @@ function renderLista(opts){
     if(PASSADOS.loaded!==PASSADOS.de+'|'+PASSADOS.ate){
       sec.appendChild(Object.assign(document.createElement('div'),{className:'empty',innerHTML:'Escolha um período e clique em <b>Carregar</b>.'}));
       return sec;
+    }
+    // Filtrar por busca de caso/processo
+    if(PASSADOS.search&&PASSADOS.search.length>=2){
+      const q=PASSADOS.search.toLowerCase();
+      items=items.filter(r=>{
+        const nome=casoNome(r).toLowerCase();
+        const proc=casoProcesso(r).toLowerCase();
+        return nome.includes(q)||proc.includes(q);
+      });
+      sec.querySelector('.cnt').textContent=items.length;
     }
   }
 
