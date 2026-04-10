@@ -613,6 +613,9 @@ function openEncerrarCobrancaModal(alert){
   const dLaudo=alert.dataLaudo||alert.dataDeteccao||new Date().toISOString().slice(0,10);
   // data presumida: laudo + 15 dias
   const dPresumida=new Date(dLaudo);dPresumida.setDate(dPresumida.getDate()+15);
+  // Se cair hoje ou no futuro, força ontem (automação do Airtable só dispara pra datas passadas)
+  const ontem=new Date();ontem.setDate(ontem.getDate()-1);
+  if(dPresumida>=new Date(todayKey()+'T00:00:00'))dPresumida.setTime(ontem.getTime());
   const dPresumidaStr=dPresumida.toISOString().slice(0,10);
   // resolver casoId
   const procIdx=buildProcessoIndex();
