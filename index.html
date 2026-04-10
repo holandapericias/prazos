@@ -674,8 +674,8 @@ function renderLista(opts){
   const source=mode==='atuais'?DATA.prazos:(DATA.prazosPassados||[]);
   let items=source.slice().filter(r=>r.fields[F.p.data]);
   if(mode==='atuais'){
-    const now=new Date();now.setHours(0,0,0,0);
-    items=items.filter(r=>new Date(r.fields[F.p.data])>=now);
+    const hk=todayKey();
+    items=items.filter(r=>dayKey(r.fields[F.p.data])>=hk);
     sec.innerHTML='<h2>Prazos Atuais <span class="cnt">'+items.length+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(de hoje em diante)</span></h2>';
     const tb=document.createElement('div');tb.className='toolbar';
     tb.innerHTML='<span>Agrupar por:</span>'+
