@@ -1374,7 +1374,6 @@ function openNovoPrazoModal(prefill){
     hid.value=c.id;
     inp.value=(c.fields[F.c.palavra]||'(sem nome)')+(c.fields[F.c.processo]?' — '+c.fields[F.c.processo]:'');
     list.style.display='none';
-    checkDuplicate();
   }
   function searchCasos(q){
     if(!q||q.length<2){list.style.display='none';return;}
