@@ -167,7 +167,7 @@ main{padding:24px 28px;max-width:1400px;margin:0 auto}
 const BASE='appTEAYT5TYhnQwTn';
 const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf',cob:'tblMSxzQ0WlFPYU8A'};
 const F={
-  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu',relatorioPos:'fldB2hP0THsLfonLO',confWpp:'fldPTHA4cfxdkQVQq',cobrancas:'fldHecjc2r12cK87T'},
+  p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu',relatorioPos:'fldB2hP0THsLfonLO',confWpp:'fldPTHA4cfxdkQVQq',cobrancas:'fldHecjc2r12cK87T',concluido:'fldqBnSzK9TBUbN8D',enviadoCliente:'fldzu2ODkrRHBnCnd'},
   cob:{tipo:'flduuDN0KZkIxDa5E',pago:'fldseQscWInxIjkWT',valorPag:'fldNRRnaAxXSwcyZ0',dataPag:'fldMqz2o0dokkPDKI',tipopg:'fldj7Q9GWFQls64un',categoria:'fldPqnKqC93PmqdUy',assistente:'fld18er35haoa5vHt',pix:'fldJvYZ0ejSYn2gyS',caso:'fldxNcSHI6NwRA1Ec',prazos:'fldTcLs9Hbhkn4hp7',recebido:'fldJF2iTO9MuOrvPu'},
   a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG',pix:'fldF4Y5ATZAGNHYM4'},
   c:{palavra:'fldj5FBvJfRd0BC22',processo:'fldzUYMqa3SNmcaiy',fase:'fld86RIjqxRbIyK2H',tipo:'fldQFTIMb6qh8hvfN',cliente:'fld7ddtpPu5BrgIoL',prazos:'fldOwEr9lEEitNdl7'}
@@ -771,13 +771,17 @@ function buildPrazoCard(r){
   const data=r.fields[F.p.data];
   const du=data?daysUntil(data):null;
   const urgent=du!=null&&du>=0&&du<=3;
+  const concluido=!!r.fields[F.p.concluido];
+  const enviado=!!r.fields[F.p.enviadoCliente];
+  const completo=concluido&&enviado;
   const card=document.createElement('div');card.className='prazo-card '+cls;
+  if(completo)card.style.borderLeftColor='#22a06b';
   const proc=casoProcesso(r);
   const due=du!=null?(du<0?'há '+(-du)+'d':du===0?'hoje':'em '+du+'d'):'';
-  const dueColor=du==null?'#6b7c8c':(du<0?'#a82929':du<=3?'#d64545':'#005F88');
+  const dueColor=completo?'#22a06b':(du==null?'#6b7c8c':(du<0?'#a82929':du<=3?'#d64545':'#005F88'));
   card.innerHTML='<div class="row-main">'+
       '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
-        '<span class="tag t-'+cls+(urgent?' urg':'')+'">'+escHtml(tipo)+'</span>'+
+        '<span class="tag t-'+cls+(urgent&&!completo?' urg':'')+'"'+(completo?' style="background:#22a06b"':'')+'>'+escHtml(tipo)+(completo?' ✓':'')+'</span>'+
         '<b style="color:#003c56;font-family:Barlow Condensed,sans-serif;font-size:16px">'+escHtml(casoNome(r))+'</b>'+
       '</div>'+
       '<div style="font-size:12px;color:#6b7c8c;margin-top:2px">'+
@@ -787,9 +791,8 @@ function buildPrazoCard(r){
       '</div>'+
     '</div>'+
     '<div class="row-checks">'+
-      chk(r,F.p.preLaudo,'Pré-Laudo')+
-      chk(r,F.p.confAss,'Conf.')+
-      chk(r,F.p.relato,'Relato')+
+      chk(r,F.p.concluido,'Concluído')+
+      chk(r,F.p.enviadoCliente,'Enviado ao cliente')+
     '</div>'+
     '<div class="row-act">'+
       '<button class="btn iconbtn" title="Excluir prazo">🗑</button>'+
@@ -797,7 +800,7 @@ function buildPrazoCard(r){
   card.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     cb.onchange=async()=>{
       const fid=cb.dataset.fid,recId=cb.dataset.rec,val=cb.checked;
-      try{await patchRecord(TBL.prazos,recId,{[fid]:val});r.fields[fid]=val;toast('Salvo','ok');}
+      try{await patchRecord(TBL.prazos,recId,{[fid]:val});r.fields[fid]=val;toast('Salvo','ok');render();}
       catch(e){cb.checked=!val;toast('Erro: '+e.message,'err');}
     };
   });
@@ -913,7 +916,6 @@ function buildPericiaBox(r){
   // BODY (collapsible)
   const body=document.createElement('div');
   body.style.cssText='margin-top:14px;padding-top:14px;border-top:1px solid #eef3f7;display:'+(expanded?'block':'none');
-  const statusOpts='<option value="">—</option>'+STATUS_ASS_OPTS.map(s=>'<option'+(r.fields[F.p.statusAss]===s?' selected':'')+'>'+s+'</option>').join('');
   const tipoPerOpts='<option value="">—</option>'+TIPO_PER_OPTS.map(s=>'<option'+(r.fields[F.p.tipoPer]===s?' selected':'')+'>'+s+'</option>').join('');
   const comentarioAss=r.fields[F.p.comentarioAss]||'';
   body.innerHTML='<div class="grid">'+
@@ -923,19 +925,22 @@ function buildPericiaBox(r){
       '<div><b>Cidade / Estado</b><input type="text" data-fid="'+F.p.cidade+'" value="'+escHtml(cidade)+'"></div>'+
       '<div><b>Assistente Técnico</b><div data-slot="assistente"></div></div>'+
       '<div><b>Valor Combinado (R$)</b><input type="number" step="0.01" data-fid="'+F.p.valorAss+'" data-type="number" value="'+(r.fields[F.p.valorAss]||'')+'"></div>'+
-      '<div><b>Status do Assistente</b><select data-fid="'+F.p.statusAss+'">'+statusOpts+'</select></div>'+
       '<div style="grid-column:1/-1"><b>Observação</b><textarea data-fid="'+F.p.obs+'">'+escHtml(r.fields[F.p.obs]||'')+'</textarea></div>'+
       (comentarioAss?'<div style="grid-column:1/-1"><b>💬 Comentário do Assistente (via WhatsApp)</b><div style="background:#f8fbfd;padding:10px 12px;border-radius:6px;border-left:3px solid #00AEEF;font-size:13px;color:#003c56;white-space:pre-wrap">'+escHtml(comentarioAss)+'</div></div>':'')+
     '</div>'+
     '<div class="chks">'+
-      '<label><input type="checkbox" data-fid="'+F.p.statusAss+'" data-type="statusAssContratado"'+(r.fields[F.p.statusAss]==='Contratado'||r.fields[F.p.statusAss]==='Confirmado'||r.fields[F.p.statusAss]==='Compareceu'?' checked':'')+'> Assistente Contratado</label>'+
+      '<label><input type="checkbox" data-fid="'+F.p.concluido+'"'+(r.fields[F.p.concluido]?' checked':'')+'> Assistente Contratado</label>'+
       '<label><input type="checkbox" data-fid="'+F.p.preLaudo+'"'+(r.fields[F.p.preLaudo]?' checked':'')+'> Pré-Laudo Enviado</label>'+
       '<label><input type="checkbox" data-fid="'+F.p.confAss+'"'+(r.fields[F.p.confAss]?' checked':'')+'> Confirmou Presença</label>'+
     '</div>'+
     '<div style="margin-top:14px;padding-top:12px;border-top:1px solid #eef3f7;display:flex;gap:8px;align-items:center;flex-wrap:wrap">'+
-      (r.fields[F.p.preLaudo]
-        ?'<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm green" style="text-decoration:none">✓ Pré-Laudo Gerado · refazer</a>'
-        :'<a href="https://holandapericias.github.io/prelaudo/?prazo='+r.id+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>')+
+      (()=>{
+        const assId=ass?ass.id:'';const val=r.fields[F.p.valorAss]||'';
+        const params='prazo='+r.id+(assId?'&ass='+assId:'')+(val?'&valor='+val:'');
+        return r.fields[F.p.preLaudo]
+          ?'<a href="https://holandapericias.github.io/prelaudo/?'+params+'" target="_blank" class="btn sm green" style="text-decoration:none">✓ Pré-Laudo Gerado · refazer</a>'
+          :'<a href="https://holandapericias.github.io/prelaudo/?'+params+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>';
+      })()+
       '<button class="btn sm orange" data-act="remarcada">↻ Remarcar</button>'+
     '</div>'+
     '<div class="foot" style="margin-top:10px"><span class="msg"></span></div>';
@@ -946,15 +951,7 @@ function buildPericiaBox(r){
     try{await patchRecord(TBL.prazos,r.id,{[fid]:val});r.fields[fid]=val;const m=msg();if(m){m.textContent='Salvo';m.className='msg ok';setTimeout(()=>{m.textContent='';},2000);}toast('Salvo','ok');}
     catch(e){const m=msg();if(m){m.textContent='Erro: '+e.message;m.className='msg err';}toast('Erro: '+e.message,'err');}
   }
-  body.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-    cb.onchange=()=>{
-      if(cb.dataset.type==='statusAssContratado'){
-        save(F.p.statusAss,cb.checked?'Contratado':'Não contratado');
-      }else{
-        save(cb.dataset.fid,cb.checked);
-      }
-    };
-  });
+  body.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.onchange=()=>save(cb.dataset.fid,cb.checked));
   // Plugar o componente de assistente
   const assSlot=body.querySelector('[data-slot=assistente]');
   if(assSlot){
