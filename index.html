@@ -353,7 +353,9 @@ async function loadJSON(path){
 
 // Filtros
 function filterPrazosAtuais(){
-  return "AND(NOT({Finalizado?}),NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-1,'days')))";
+  // Margem de -3 dias pra compensar timezone UTC vs EDT do Airtable.
+  // O filtro client-side (dayKey >= todayKey) cuida da precisão por dia.
+  return "AND(NOT({Finalizado?}),NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-3,'days')))";
 }
 function filterPrazosRange(deIso,ateIso){
   return "AND(NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},'"+deIso+"'),IS_BEFORE({Data da Perícia},'"+ateIso+"'))";
