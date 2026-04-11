@@ -1126,7 +1126,8 @@ function openCobrancaModal(prazoRec,existingCob){
     '<div class="fg">'+
       '<div class="full"><label>Assistente Técnico</label><div id="cAssSlot"></div></div>'+
       '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
-      '<div><label>Data da Solicitação</label><input type="date" id="fData" value="'+(cf[F.cob.dataPag]||hoje)+'"></div>'+
+      '<div><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+(cf['fld017hwmpf88pMf4']||hoje)+'"></div>'+
+      '<div><label>Data do Pagamento</label><input type="date" id="fDataPag" value="'+(cf[F.cob.dataPag]||'')+'"></div>'+
       '<div class="full"><label>Tipo</label><select id="fTipopg">'+
         tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+
       '</select></div>'+
@@ -1214,9 +1215,10 @@ function openCobrancaModal(prazoRec,existingCob){
     fields[F.cob.categoria]='Custo Direto (Assistente)';
     fields[F.cob.tipopg]=tipopgSel.value;
     fields[F.cob.valorPag]=valor;
-    const dataSol=m.querySelector('#fData').value;
-    fields[F.cob.dataPag]=dataSol;
-    fields['fld017hwmpf88pMf4']=dataSol;  // Data da cobrança (= Data da Solicitação na view do Airtable)
+    const dataSol=m.querySelector('#fDataSol').value;
+    const dataPag=m.querySelector('#fDataPag').value;
+    if(dataSol)fields['fld017hwmpf88pMf4']=dataSol;
+    if(dataPag)fields[F.cob.dataPag]=dataPag;
     if(pixVal)fields[F.cob.pix]=pixVal;
     fields[F.cob.pago]=m.querySelector('#fPago').checked;
     if(!isEdit){
