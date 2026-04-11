@@ -1214,7 +1214,9 @@ function openCobrancaModal(prazoRec,existingCob){
     fields[F.cob.categoria]='Custo Direto (Assistente)';
     fields[F.cob.tipopg]=tipopgSel.value;
     fields[F.cob.valorPag]=valor;
-    fields[F.cob.dataPag]=m.querySelector('#fData').value;
+    const dataSol=m.querySelector('#fData').value;
+    fields[F.cob.dataPag]=dataSol;
+    fields['fld017hwmpf88pMf4']=dataSol;  // Data da cobrança (= Data da Solicitação na view do Airtable)
     if(pixVal)fields[F.cob.pix]=pixVal;
     fields[F.cob.pago]=m.querySelector('#fPago').checked;
     if(!isEdit){
