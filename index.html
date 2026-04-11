@@ -418,6 +418,7 @@ function inputDatetimeToIso(v){if(!v)return null;return v+':00.000Z';}
 function inputDateToIso(v,hour){if(!v)return null;return v+'T'+(hour||'12:00')+':00.000Z';}
 function dayKey(iso){return iso?iso.split('T')[0]:'';}
 function todayKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function localDateKey(offsetDays){const n=new Date();n.setDate(n.getDate()+(offsetDays||0));return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
 function daysUntil(iso){
   if(!iso)return null;
   const [y,m,d]=iso.split('T')[0].split('-').map(Number);
@@ -612,13 +613,13 @@ function buildAlertRow(a){
 function openEncerrarCobrancaModal(alert){
   const bg=document.createElement('div');bg.className='modal-bg';
   const m=document.createElement('div');m.className='modal';
-  const dLaudo=alert.dataLaudo||alert.dataDeteccao||new Date().toISOString().slice(0,10);
+  const dLaudo=alert.dataLaudo||alert.dataDeteccao||todayKey();
   // data presumida: laudo + 15 dias
   const dPresumida=new Date(dLaudo);dPresumida.setDate(dPresumida.getDate()+15);
   // Se cair hoje ou no futuro, força ontem (automação do Airtable só dispara pra datas passadas)
   const ontem=new Date();ontem.setDate(ontem.getDate()-1);
   if(dPresumida>=new Date(todayKey()+'T00:00:00'))dPresumida.setTime(ontem.getTime());
-  const dPresumidaStr=dPresumida.toISOString().slice(0,10);
+  const dPresumidaStr=dPresumida.getFullYear()+'-'+String(dPresumida.getMonth()+1).padStart(2,'0')+'-'+String(dPresumida.getDate()).padStart(2,'0');
   // resolver casoId
   const procIdx=buildProcessoIndex();
   let casoId=alert._casoId||alert.casoId||alert.casoSugerido||'';
@@ -642,7 +643,7 @@ function openEncerrarCobrancaModal(alert){
   // auto-recalc presumida quando muda laudo
   m.querySelector('#fLaudo').onchange=e=>{
     const d=new Date(e.target.value);d.setDate(d.getDate()+15);
-    m.querySelector('#fManif').value=d.toISOString().slice(0,10);
+    m.querySelector('#fManif').value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   };
   m.querySelector('#sv').onclick=async()=>{
     const cid=m.querySelector('#fCaso').value;
@@ -652,7 +653,7 @@ function openEncerrarCobrancaModal(alert){
     const fields={};
     fields[F.p.caso]=[cid];
     fields[F.p.tipo]=['Manifestação ao Laudo'];
-    fields[F.p.data]=new Date(dManif+'T12:00:00').toISOString();
+    fields[F.p.data]=inputDateToIso(dManif,'12:00');
     fields[F.p.finalizado]=true;
     if(obs)fields[F.p.obs]=obs;
     try{
@@ -686,8 +687,8 @@ function renderLista(opts){
     sec.appendChild(tb);
     tb.querySelector('#sortSel').onchange=e=>{SORT_ATUAIS=e.target.value;render();};
   }else{
-    if(!PASSADOS.de){const d=new Date();d.setDate(d.getDate()-1);PASSADOS.de=d.toISOString().slice(0,10);}
-    if(!PASSADOS.ate){PASSADOS.ate=new Date().toISOString().slice(0,10);}
+    if(!PASSADOS.de){PASSADOS.de=localDateKey(-1);}
+    if(!PASSADOS.ate){PASSADOS.ate=todayKey();}
     sec.innerHTML='<h2>Prazos Passados <span class="cnt">'+items.length+'</span></h2>';
     const tb=document.createElement('div');tb.className='toolbar';
     tb.innerHTML='<span>De:</span><input type="date" id="dDe" value="'+PASSADOS.de+'">'+
@@ -708,9 +709,9 @@ function renderLista(opts){
     if(clrBtn)clrBtn.onclick=()=>{PASSADOS.search='';render();};
     const apply=(de,ate)=>{PASSADOS.de=de;PASSADOS.ate=ate;PASSADOS.loaded=de+'|'+ate;loadPassados(de,ate);};
     tb.querySelector('#dAp').onclick=()=>apply(tb.querySelector('#dDe').value,tb.querySelector('#dAte').value);
-    tb.querySelector('#dQ1').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-30);apply(b.toISOString().slice(0,10),a.toISOString().slice(0,10));};
-    tb.querySelector('#dQ2').onclick=()=>{const a=new Date(),b=new Date();b.setDate(b.getDate()-90);apply(b.toISOString().slice(0,10),a.toISOString().slice(0,10));};
-    tb.querySelector('#dQ3').onclick=()=>{const a=new Date();apply(a.getFullYear()+'-01-01',a.toISOString().slice(0,10));};
+    tb.querySelector('#dQ1').onclick=()=>apply(localDateKey(-30),todayKey());
+    tb.querySelector('#dQ2').onclick=()=>apply(localDateKey(-90),todayKey());
+    tb.querySelector('#dQ3').onclick=()=>apply(new Date().getFullYear()+'-01-01',todayKey());
     if(PASSADOS.loaded!==PASSADOS.de+'|'+PASSADOS.ate){
       sec.appendChild(Object.assign(document.createElement('div'),{className:'empty',innerHTML:'Escolha um período e clique em <b>Carregar</b>.'}));
       return sec;
@@ -733,11 +734,13 @@ function renderLista(opts){
   const groups={};
   const orderBy=(mode==='atuais'&&SORT_ATUAIS==='data')?'data':'tipo';
   if(orderBy==='data'){
-    items.sort((a,b)=>new Date(a.fields[F.p.data])-new Date(b.fields[F.p.data]));
+    items.sort((a,b)=>(a.fields[F.p.data]||'').localeCompare(b.fields[F.p.data]||''));
     items.forEach(r=>{
-      const d=new Date(r.fields[F.p.data]);
-      const k=d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
-      (groups[k]=groups[k]||[]).push(r);
+      const dk=dayKey(r.fields[F.p.data]);
+      if(!dk){(groups['Sem data']=groups['Sem data']||[]).push(r);return;}
+      const [y,mo,dy]=dk.split('-').map(Number);
+      const label=new Date(y,mo-1,dy).toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      (groups[label]=groups[label]||[]).push(r);
     });
   }else{
     items.forEach(r=>{const t=firstTipo(r)||'Outro';(groups[t]=groups[t]||[]).push(r);});
@@ -1113,7 +1116,7 @@ function openCobrancaModal(prazoRec,existingCob){
   const ass=assistFromPrazo(prazoRec);
   const assPix=lookupPixAssistente(ass);
   const isRemarc=!!prazoRec.fields[F.p.remarc];
-  const hoje=new Date().toISOString().slice(0,10);
+  const hoje=todayKey();
   const isEdit=!!existingCob;
   const cf=isEdit?existingCob.fields:{};
   const pago=isEdit?!!cf[F.cob.pago]:false;
