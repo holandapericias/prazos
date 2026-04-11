@@ -909,10 +909,11 @@ function buildPericiaBox(r){
     '</div>'+
     '<div style="font-family:Barlow Condensed,sans-serif;font-size:18px;font-weight:700;color:#003c56;line-height:1.2">'+escHtml(casoNome(r))+'</div>'+
     (casoProcesso(r)?'<div style="font-size:11px;color:#6b7c8c;font-family:Barlow Condensed,sans-serif;margin-top:2px">'+escHtml(casoProcesso(r))+'</div>':'')+
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:4px 18px;margin-top:10px;font-size:13px;color:#003c56">'+
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px 18px;margin-top:10px;font-size:13px;color:#003c56">'+
       '<div><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Data</b>'+escHtml(dataStr)+'</div>'+
       '<div><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Horário</b>'+escHtml(horaStr)+'</div>'+
-      '<div style="grid-column:span 2"><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Endereço</b>'+escHtml((local?local+(cidade?' · '+cidade:''):(cidade||'—')))+'</div>'+
+      (cidade?'<div><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Cidade</b><span style="font-weight:700;color:#005F88">'+escHtml(cidade)+'</span></div>':'')+
+      '<div style="grid-column:1/-1"><b style="color:#6b7c8c;font-size:10px;text-transform:uppercase;display:block">Endereço</b>'+escHtml(local||'—')+'</div>'+
     '</div>'+
     (due?'<div style="font-size:12px;margin-top:6px;color:'+urgColor+';font-weight:600">⏱ '+due+'</div>':'');
   box.appendChild(head);
@@ -1446,9 +1447,35 @@ function openNovoPrazoModal(prefill){
         const fLocal=m.querySelector('#fLocal');
         if(fLocal)fLocal.value=localMatch[1].trim().replace(/\.\s*Perito.*/i,'').replace(/\.\s*Caso.*/i,'').trim();
       }
-      // Tipo perícia: MÉDICA ou TÉCNICA
-      if(desc.match(/[Mm][Éée]dica/)){const sel=m.querySelector('#fTipoPer');if(sel)sel.value='Medicina';}
-      else if(desc.match(/[Tt][Éée]cnica|insalubridade|periculosidade/i)){const sel=m.querySelector('#fTipoPer');if(sel)sel.value='Engenharia';}
+      // Tipo perícia: 1) da descrição, 2) do caso no Airtable
+      const selTipoPer=m.querySelector('#fTipoPer');
+      if(selTipoPer&&!selTipoPer.value){
+        if(desc.match(/[Mm][Éée]dica/))selTipoPer.value='Medicina';
+        else if(desc.match(/[Tt][Éée]cnica|insalubridade|periculosidade/i))selTipoPer.value='Engenharia';
+        else if(cid){
+          // Fallback: buscar tipo do caso no Airtable
+          const caso=DATA.casos.find(x=>x.id===cid);
+          if(caso){
+            const tipoCaso=(caso.fields[F.c.tipo]||'');
+            const tn=typeof tipoCaso==='object'?(tipoCaso.name||''):tipoCaso;
+            if(tn.match(/[Mm]ed|[Mm]éd/))selTipoPer.value='Medicina';
+            else if(tn.match(/[Ee]ng|[Tt]éc/))selTipoPer.value='Engenharia';
+          }
+        }
+      }
+      // Cidade/Estado: extrair do endereço (padrões comuns: "Fortaleza-CE", "Fortaleza/CE", "Tianguá - CE")
+      const fCidade=m.querySelector('#fCidade');
+      const fLocal=m.querySelector('#fLocal');
+      if(fCidade&&fLocal&&fLocal.value&&!fCidade.value){
+        const addr=fLocal.value;
+        // Tentar extrair "Cidade-UF" ou "Cidade/UF" ou "Cidade - UF" do final do endereço
+        const cidMatch=addr.match(/,?\s*([A-ZÀ-Úa-zà-ú\s]+)\s*[-\/]\s*([A-Z]{2})\s*(?:[-–]?\s*CEP.*)?$/i);
+        if(cidMatch){
+          fCidade.value=cidMatch[1].trim()+'/'+cidMatch[2].toUpperCase();
+          // Limpar cidade do campo local
+          fLocal.value=addr.replace(cidMatch[0],'').replace(/,\s*$/,'').trim();
+        }
+      }
       // Obs
       const obsEl=m.querySelector('#fObs');
       if(obsEl)obsEl.value=desc;
