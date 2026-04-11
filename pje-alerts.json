@@ -1,5 +1,5 @@
 {
-  "lastChecked": "2026-04-10T18:00:00Z",
+  "lastChecked": "2026-04-10T19:00:00Z",
   "alerts": [
     {
       "id": "pje-0002-pd-20260410",
@@ -33,14 +33,27 @@
       "descricao": "Perícia TÉCNICA (insalubridade) designada para 28/04/2026 às 13:30h. Local: sede da PEDALUSA ALIMENTOS (Eusébio/CE). Perito do juízo: RODRIGO DE MELO RODRIGUES. Prazo laudo: 20/05. Prazo manifestação: 27/05. Caso não tem prazo de Perícia no Airtable.",
       "dataDeteccao": "2026-04-10",
       "urgencia": "alta"
+    },
+    {
+      "id": "pje-0000-mp-20260410",
+      "casoId": "",
+      "casoNome": "MORGANA APARECIDA MOREIRA DOS SANTOS X GESTOR SERVIÇOS EMPRESARIAIS",
+      "numeroProcesso": "0000185-96.2025.5.07.0016",
+      "tipo": "manifestacao_perdida",
+      "tipoSugerido": "Manifestação ao Laudo",
+      "descricao": "Laudo Pericial publicado em 20/02/2026 (50 dias atrás). Conclusão: NÃO existe nexo causal entre quadro psiquiátrico (ansioso-depressivo/burnout) da trabalhadora e o trabalho como operadora de atendimento. Laudo DESFAVORÁVEL ao trabalhador. Sem manifestação registrada no Airtable — caso deve ser encerrado para cobrança.",
+      "dataDeteccao": "2026-04-10",
+      "dataLaudo": "2026-02-20",
+      "conclusaoLaudo": "Perito concluiu: quadro psiquiátrico ansioso-depressivo leve-moderado, tratável, sem sequelas permanentes. NÃO existe nexo causal nem concausal com atividades laborais. Sem incapacidade atual. Não se caracteriza doença ocupacional (Lei 8.213/91).",
+      "urgencia": "alta"
     }
   ],
   "sweepSummary": {
-    "casosVerificados": 5,
+    "casosVerificados": 8,
     "sigilosos": 0,
     "erro500": 0,
     "periciasDesignadas": 3,
-    "manifPerdidas": 0,
-    "nota": "Fluxo de 3 passos (visao_geral → mapa_documentos/list_documentos → read_documento) detectou 3 perícias designadas via documentos PJe que não tinham prazo no Airtable."
+    "manifPerdidas": 1,
+    "nota": "Fluxo de 3 passos: visao_geral → list_documentos/mapa_documentos → read_documento. Encontrou 3 perícias sem prazo + 1 laudo publicado há 50 dias sem manifestação."
   }
 }
