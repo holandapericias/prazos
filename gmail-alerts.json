@@ -1,38 +1,4 @@
 {
-  "lastChecked": "2026-04-09T12:30:00Z",
-  "alerts": [
-    {
-      "id": "gmail-20260407-081",
-      "de": "Carlos Matos <carlos.matos@raa.adv.br>",
-      "assunto": "PROCESSO 0000081-37.2026.5.07.0027 - CARLOS MARIANO MACEDO X GESTOR SERVIÇOS E ESTADO DO CEARÁ",
-      "resumo": "Perícia designada para 16/04/2026 às 10h15 no Fórum Trabalhista da Região do Cariri (Rua Rafael Malzoni, 761, São José). Caso ainda está sem data no Airtable — agendar.",
-      "dataEmail": "2026-04-07",
-      "casoSugerido": "recCc83uYlcgDuuDU",
-      "numeroProcesso": "0000081-37.2026.5.07.0027",
-      "tipoSugerido": "Perícia",
-      "urgencia": "alta"
-    },
-    {
-      "id": "gmail-20260406-2086",
-      "de": "Rodrigo Carneiro <rodrigo.carneiro@raa.adv.br>",
-      "assunto": "0002086-24.2025.5.10.0111 - JAQUELINE DE CASTRO X FORTBRASIL",
-      "resumo": "Laudo pericial enviado em 06/04/2026. Abrir prazo de Manifestação ao Laudo (15 dias).",
-      "dataEmail": "2026-04-06",
-      "casoSugerido": "",
-      "numeroProcesso": "0002086-24.2025.5.10.0111",
-      "tipoSugerido": "Manifestação ao Laudo",
-      "urgencia": "alta"
-    },
-    {
-      "id": "gmail-20260408-1126",
-      "de": "Talita BG <coordenacaojuridica@gestorservicos.com>",
-      "assunto": "PROCESSO 0001126-80.2025.5.07.0037 - MARIA DO SOCORRO DE SOUSA X GESTOR SERVIÇOS E BNB",
-      "resumo": "URGENTE — prazo fatal para Manifestação ao Laudo. Equipe jurídica cobrando envio ainda hoje.",
-      "dataEmail": "2026-04-08",
-      "casoSugerido": "",
-      "numeroProcesso": "0001126-80.2025.5.07.0037",
-      "tipoSugerido": "Manifestação ao Laudo",
-      "urgencia": "alta"
-    }
-  ]
+  "lastChecked": "2026-04-10T18:00:00Z",
+  "alerts": []
 }
