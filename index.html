@@ -360,10 +360,9 @@ function filterPrazosAtuais(){
 function filterPrazosRange(deIso,ateIso){
   return "AND(NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},'"+deIso+"'),IS_BEFORE({Data da Perícia},'"+ateIso+"'))";
 }
-// Pós-perícia: perícias recentes (últimos 7 dias + futuras próximas), não remarcadas
-// "A partir de agora" — só trabalha com perícias novas, não traz histórico
+// Pós-perícia: perícias dos últimos 30 dias, não remarcadas
 function filterPosPericia(){
-  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-7,'days')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-30,'days')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
 }
 
 async function loadData(){
@@ -1354,14 +1353,15 @@ function openNovoPrazoModal(prefill){
     const cid=hid.value;const tipo=tipoSel.value;
     dupAlert.style.display='none';
     if(!cid||!tipo)return;
-    // Busca prazos ativos do mesmo caso + tipo
+    // Busca prazos ativos do mesmo caso + mesmo tipo
     const dups=DATA.prazos.filter(r=>{
       const link=r.fields[F.p.caso]||[];
-      if(!link.includes(cid))return false;
+      const casoMatch=link.some(l=>(typeof l==='object'?l.id:l)===cid)||link.includes(cid);
+      if(!casoMatch)return false;
       if(r.fields[F.p.finalizado])return false;
       const t=r.fields[F.p.tipo]||[];
-      const tipos=Array.isArray(t)?t.map(x=>typeof x==='object'?x.name:x):[t];
-      return tipos.includes(tipo);
+      const tipoNames=Array.isArray(t)?t.map(x=>typeof x==='object'?x.name:x):[typeof t==='object'?t.name:t];
+      return tipoNames.includes(tipo);
     });
     if(!dups.length)return;
     const d=dups[0];
@@ -1390,12 +1390,12 @@ function openNovoPrazoModal(prefill){
     list.querySelectorAll('[data-id]').forEach(el=>{
       el.onmouseenter=()=>el.style.background='#f0f7fc';
       el.onmouseleave=()=>el.style.background='';
-      el.onclick=()=>{const c=DATA.casos.find(x=>x.id===el.dataset.id);if(c)pickCaso(c);};
+      el.onmousedown=e=>{e.preventDefault();const c=DATA.casos.find(x=>x.id===el.dataset.id);if(c)pickCaso(c);};
     });
   }
   inp.oninput=()=>{hid.value='';searchCasos(inp.value);};
   inp.onfocus=()=>{if(inp.value)searchCasos(inp.value);};
-  inp.onblur=()=>setTimeout(()=>list.style.display='none',180);
+  inp.onblur=()=>setTimeout(()=>list.style.display='none',300);
 
   // Plugar componente de assistente
   const assSlot=m.querySelector('#fAssSlot');
@@ -1413,14 +1413,55 @@ function openNovoPrazoModal(prefill){
   toggleFields();
 
   if(prefill){
-    const cid=prefill.casoId||prefill.casoSugerido||'';
+    // Auto-resolver casoId via processo se não veio direto
+    let cid=prefill.casoId||prefill.casoSugerido||prefill._casoId||'';
+    if(!cid&&prefill.numeroProcesso){
+      const key=prefill.numeroProcesso.replace(/\D/g,'');
+      const procIdx=buildProcessoIndex();
+      cid=procIdx[key]||'';
+    }
     if(cid){const c=DATA.casos.find(x=>x.id===cid);if(c)pickCaso(c);}
+    // Tipo
     if(prefill.tipo==='laudo_publicado'||prefill.tipoSugerido==='Manifestação ao Laudo')tipoSel.value='Manifestação ao Laudo';
     else if(prefill.tipo==='pericia_designada'||prefill.tipoSugerido==='Perícia')tipoSel.value='Perícia';
-    toggleFields();
-    if(prefill.descricao||prefill.resumo){
+    toggleFields();checkDuplicate();
+    // Extrair data/hora/local da descrição do alerta pra preencher automaticamente
+    const desc=prefill.descricao||prefill.resumo||'';
+    if(tipoSel.value==='Perícia'){
+      // Data: busca DD/MM/YYYY ou YYYY-MM-DD
+      const dateMatch=desc.match(/(\d{2})\/(\d{2})\/(\d{4})/)||desc.match(/(\d{4})-(\d{2})-(\d{2})/);
+      // Hora: busca HH:MM ou HHh ou HH:MMh
+      const timeMatch=desc.match(/(\d{1,2})[h:](\d{2})/);
+      if(dateMatch){
+        let y,mo,dy;
+        if(dateMatch[0].includes('/'))  {dy=dateMatch[1];mo=dateMatch[2];y=dateMatch[3];}
+        else                            {y=dateMatch[1];mo=dateMatch[2];dy=dateMatch[3];}
+        const hr=timeMatch?(timeMatch[1].padStart(2,'0')+':'+timeMatch[2]):'09:00';
+        const dtVal=y+'-'+mo+'-'+dy+'T'+hr;
+        const fData=m.querySelector('#fData');
+        if(fData)fData.value=dtVal;
+      }
+      // Local: busca "Local:" ou "Local (" ou após "Local da perícia:"
+      const localMatch=desc.match(/Local[:\s]+([^.]+)/i);
+      if(localMatch){
+        const fLocal=m.querySelector('#fLocal');
+        if(fLocal)fLocal.value=localMatch[1].trim().replace(/\.\s*Perito.*/i,'').replace(/\.\s*Caso.*/i,'').trim();
+      }
+      // Tipo perícia: MÉDICA ou TÉCNICA
+      if(desc.match(/[Mm][Éée]dica/)){const sel=m.querySelector('#fTipoPer');if(sel)sel.value='Medicina';}
+      else if(desc.match(/[Tt][Éée]cnica|insalubridade|periculosidade/i)){const sel=m.querySelector('#fTipoPer');if(sel)sel.value='Engenharia';}
+      // Obs
       const obsEl=m.querySelector('#fObs');
-      if(obsEl&&tipoSel.value==='Perícia')obsEl.value=prefill.descricao||prefill.resumo;
+      if(obsEl)obsEl.value=desc;
+    }else if(tipoSel.value==='Manifestação ao Laudo'){
+      // Pra manifestação, extrair data do laudo e calcular prazo
+      const dateMatch=desc.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if(dateMatch){
+        const laudoDate=new Date(dateMatch[3]+'-'+dateMatch[2]+'-'+dateMatch[1]);
+        laudoDate.setDate(laudoDate.getDate()+15);
+        const fDataSimples=m.querySelector('#fDataSimples');
+        if(fDataSimples)fDataSimples.value=laudoDate.getFullYear()+'-'+String(laudoDate.getMonth()+1).padStart(2,'0')+'-'+String(laudoDate.getDate()).padStart(2,'0');
+      }
     }
   }
   const msg=m.querySelector('.msg');
