@@ -892,7 +892,12 @@ function buildPericiaBox(r){
   const horaStr=isoLocalTime(data);
   const tipoPer=r.fields[F.p.tipoPer]||'';
   const local=r.fields[F.p.local]||'';
-  const cidade=r.fields[F.p.cidade]||'';
+  let cidade=r.fields[F.p.cidade]||'';
+  // Auto-extrair cidade/UF do endereço se campo vazio
+  if(!cidade&&local){
+    const cm=local.match(/,?\s*([A-ZÀ-Úa-zà-ú\s]+)\s*[-\/]\s*([A-Z]{2})\s*(?:[-–]?\s*CEP.*)?$/i);
+    if(cm)cidade=cm[1].trim()+'/'+cm[2].toUpperCase();
+  }
   const realizada=!!r.fields[F.p.realizada];
   const remarcada=!!r.fields[F.p.remarc];
   // HEAD: dados fixos da perícia (sempre visível)
