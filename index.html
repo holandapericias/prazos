@@ -168,8 +168,8 @@ const BASE='appTEAYT5TYhnQwTn';
 const TBL={prazos:'tbln95BoOQe7ZXpzJ',casos:'tbluIGDmDWYdvIXGh',assist:'tblK0oBCU9EmeXwLf',cob:'tblMSxzQ0WlFPYU8A'};
 const F={
   p:{nome:'fldYIzflTahI2p0pe',tipo:'fldwFdFcb76bkbjD4',caso:'fldJ5zNofON8zZHQO',situacao:'flduHW2EqykVwIzcu',data:'fldYl3z2vJDBxc7ql',tipoPer:'fld9B7glkHxnUSnlQ',statusAss:'fld1eWoDmIx4Xsr4l',local:'fldtOaPUfTwXpVTRy',assistente:'fld7FZUBM7KDz6JlK',municipio:'fldERV4m93IZT9kZO',remarc:'fldQPXvXFiKlS2tXp',preLaudo:'fldpWvUMHzDcEqUsd',confAss:'fldL1IF1ryc3G2ilA',relato:'fldDlrhNhRznqCSoA',obs:'fldQCwpQ6tMlO5sVa',cidade:'flds7nm3aHllMYAGQ',finalizado:'fldrhICAJtN3gqXkR',valorAss:'fldp3Y2x1I5EZHzyE',realizada:'fldxFpOrY9XIEtgiX',comentarioAss:'fldeLli35dBMXk1vu',relatorioPos:'fldB2hP0THsLfonLO',confWpp:'fldPTHA4cfxdkQVQq',cobrancas:'fldHecjc2r12cK87T',concluido:'fldqBnSzK9TBUbN8D',enviadoCliente:'fldzu2ODkrRHBnCnd'},
-  cob:{tipo:'flduuDN0KZkIxDa5E',pago:'fldseQscWInxIjkWT',valorPag:'fldNRRnaAxXSwcyZ0',dataPag:'fldMqz2o0dokkPDKI',tipopg:'fldj7Q9GWFQls64un',categoria:'fldPqnKqC93PmqdUy',assistente:'fld18er35haoa5vHt',pix:'fldJvYZ0ejSYn2gyS',caso:'fldxNcSHI6NwRA1Ec',prazos:'fldTcLs9Hbhkn4hp7',recebido:'fldJF2iTO9MuOrvPu'},
-  a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG',pix:'fldF4Y5ATZAGNHYM4'},
+  cob:{tipo:'flduuDN0KZkIxDa5E',pago:'fldseQscWInxIjkWT',valorPag:'fldNRRnaAxXSwcyZ0',dataPag:'fldMqz2o0dokkPDKI',tipopg:'fldj7Q9GWFQls64un',categoria:'fldPqnKqC93PmqdUy',assistente:'fld18er35haoa5vHt',pix:'fldJvYZ0ejSYn2gyS',caso:'fldxNcSHI6NwRA1Ec',prazos:'fldTcLs9Hbhkn4hp7',recebido:'fldJF2iTO9MuOrvPu',tipoPagamento:'fldoz03J5oMdtYtvy'},
+  a:{nome:'fldaYZAZioP0rVl4O',esp:'fldKZJvPLcO56iRMK',email:'fld0WW3RfuJJRbd9n',phone:'fldAcouFHEHO7KwlZ',local:'fldcnq8lrMMLyTnBG',pix:'fldF4Y5ATZAGNHYM4',modelo:'fld7NSkK9yeaO1Yl9'},
   c:{palavra:'fldj5FBvJfRd0BC22',processo:'fldzUYMqa3SNmcaiy',fase:'fld86RIjqxRbIyK2H',tipo:'fldQFTIMb6qh8hvfN',cliente:'fld7ddtpPu5BrgIoL',prazos:'fldOwEr9lEEitNdl7'}
 };
 
@@ -1052,11 +1052,25 @@ function buildPosPericiaCard(r){
         '<button class="btn sm orange" data-act="remarcar">↻ Perícia Remarcada</button>'+
         '<button class="btn sm gray iconbtn" data-act="del" title="Excluir">🗑</button>'+
       '</div>'+
-      (cobs.length?'<div style="margin-top:8px;font-size:12px;color:#003c56">'+cobs.map(c=>{
-        const pago=c.fields[F.cob.pago];
-        const valor=c.fields[F.cob.valorPag]||0;
-        return '<div>'+(pago?'✅ Assistente pago':'⏳ Aguardando pagamento ao assistente')+' · R$ '+valor.toFixed(2).replace('.',',')+'</div>';
-      }).join('')+'</div>':'')+
+      (cobs.length?'<div style="margin-top:8px;font-size:12px;color:#003c56">'+(function(){
+        const ehIni=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/inicia/i.test(typeof x==='object'?x.name:x));};
+        const ehFin=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/final/i.test(typeof x==='object'?x.name:x));};
+        if(cobs.length===2){
+          const ini=cobs.find(ehIni);const fin=cobs.find(ehFin);
+          if(ini&&fin){
+            const vi=ini.fields[F.cob.valorPag]||0;const vf=fin.fields[F.cob.valorPag]||0;
+            const pi=!!ini.fields[F.cob.pago];const pf=!!fin.fields[F.cob.pago];
+            return '<div style="font-weight:600">💰 Pagamento dividido · Total R$ '+(vi+vf).toFixed(2).replace('.',',')+'</div>'+
+              '<div style="margin-left:18px;margin-top:4px">'+(pi?'✅':'⏳')+' 1ª parcela: R$ '+vi.toFixed(2).replace('.',',')+(pi?' (pago)':' (aguardando)')+'</div>'+
+              '<div style="margin-left:18px">'+(pf?'✅':'⏳')+' 2ª parcela: R$ '+vf.toFixed(2).replace('.',',')+(pf?' (pago)':' (aguardando)')+'</div>';
+          }
+        }
+        return cobs.map(c=>{
+          const pago=c.fields[F.cob.pago];
+          const valor=c.fields[F.cob.valorPag]||0;
+          return '<div>'+(pago?'✅ Assistente pago':'⏳ Aguardando pagamento ao assistente')+' · R$ '+valor.toFixed(2).replace('.',',')+'</div>';
+        }).join('');
+      })()+'</div>':'')+
     '</div>'+
     '<div class="foot" style="margin-top:8px"><span class="msg"></span></div>';
   const msg=()=>box.querySelector('.msg');
@@ -1088,7 +1102,7 @@ function buildPosPericiaCard(r){
   box.querySelector('[data-act=relatorio]').onchange=e=>save(F.p.relatorioPos,e.target.checked);
   const txt=box.querySelector('[data-act=comentario]');
   txt.onchange=()=>save(F.p.comentarioAss,txt.value);
-  box.querySelector('[data-act=cobranca]').onclick=()=>openCobrancaModal(r,cobs[0]);
+  box.querySelector('[data-act=cobranca]').onclick=()=>openCobrancaModal(r,cobs);
   box.querySelector('[data-act=remarcar]').onclick=()=>openRemarcacaoModal(r);
   box.querySelector('[data-act=del]').onclick=()=>confirmDelete(r);
   return box;
@@ -1112,7 +1126,8 @@ function lookupPixAssistente(assRec){
 }
 
 // ===== MODAL SOLICITAÇÃO DE PAGAMENTO AO ASSISTENTE (SAÍDA) =====
-function openCobrancaModal(prazoRec,existingCob){
+function openCobrancaModal(prazoRec,existingCobs){
+  existingCobs=Array.isArray(existingCobs)?existingCobs:(existingCobs?[existingCobs]:[]);
   const bg=document.createElement('div');bg.className='modal-bg';
   const m=document.createElement('div');m.className='modal';
   const link=prazoRec.fields[F.p.caso]||[];
@@ -1122,25 +1137,65 @@ function openCobrancaModal(prazoRec,existingCob){
   const assPix=lookupPixAssistente(ass);
   const isRemarc=!!prazoRec.fields[F.p.remarc];
   const hoje=todayKey();
-  const isEdit=!!existingCob;
-  const cf=isEdit?existingCob.fields:{};
-  const pago=isEdit?!!cf[F.cob.pago]:false;
+  const modelo=ass?ass.fields[F.a.modelo]:'';
+  const isDividido=modelo==='Pagamento dividido';
+  const ehInicial=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/inicia/i.test(typeof x==='object'?x.name:x));};
+  const ehFinal=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/final/i.test(typeof x==='object'?x.name:x));};
+  const cobIni=existingCobs.find(ehInicial);
+  const cobFin=existingCobs.find(ehFinal);
+  const cobUnica=(existingCobs.length===1&&!ehInicial(existingCobs[0])&&!ehFinal(existingCobs[0]))?existingCobs[0]:null;
+  const existingCob=cobUnica||existingCobs[0]||null;
+  const isEdit=isDividido?(!!cobIni||!!cobFin):!!existingCob;
+  const cf=existingCob?existingCob.fields:{};
+  const pago=existingCob?!!cf[F.cob.pago]:false;
   const tipopgOpts=['Assistente Técnico','Assistente Técnico (remarcação)'];
   const tipopgDefault=isRemarc?'Assistente Técnico (remarcação)':'Assistente Técnico';
   const tipopgAtual=cf[F.cob.tipopg]?(typeof cf[F.cob.tipopg]==='object'?cf[F.cob.tipopg].name:cf[F.cob.tipopg]):tipopgDefault;
   const assName=ass?(ass.fields[F.a.nome]||''):'';
-  m.innerHTML='<h2>💸 '+(isEdit?'Editar Solicitação':'Solicitação de Pagamento')+'</h2>'+
+  // Pré-popular parcelas
+  const valorIniAtual=cobIni?(cobIni.fields[F.cob.valorPag]||''):(valorAss?(parseFloat(valorAss)/2).toFixed(2):'');
+  const valorFinAtual=cobFin?(cobFin.fields[F.cob.valorPag]||''):(valorAss?(parseFloat(valorAss)/2).toFixed(2):'');
+  const valorTotalAtual=cobIni||cobFin?((cobIni?.fields[F.cob.valorPag]||0)+(cobFin?.fields[F.cob.valorPag]||0)):(valorAss||'');
+  const dataPagIniAtual=cobIni?(cobIni.fields[F.cob.dataPag]||''):'';
+  const dataPagFinAtual=cobFin?(cobFin.fields[F.cob.dataPag]||''):'';
+  const pagoIni=cobIni?!!cobIni.fields[F.cob.pago]:false;
+  const pagoFin=cobFin?!!cobFin.fields[F.cob.pago]:false;
+  const pixAtualDiv=(cobIni?.fields[F.cob.pix])||(cobFin?.fields[F.cob.pix])||assPix;
+  m.innerHTML='<h2>💸 '+(isEdit?'Editar Solicitação':'Solicitação de Pagamento')+(isDividido?' (Pagamento Dividido)':'')+'</h2>'+
     '<div style="font-size:12px;color:#6b7c8c;margin-bottom:6px">Caso: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
     '<div class="fg">'+
       '<div class="full"><label>Assistente Técnico</label><div id="cAssSlot"></div></div>'+
-      '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
-      '<div><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+(cf['fld017hwmpf88pMf4']||hoje)+'"></div>'+
-      '<div><label>Data do Pagamento</label><input type="date" id="fDataPag" value="'+(cf[F.cob.dataPag]||'')+'"></div>'+
-      '<div class="full"><label>Tipo</label><select id="fTipopg">'+
-        tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+
-      '</select></div>'+
-      '<div class="full"><label>Chave PIX <span id="pixHint" style="color:#22a06b;font-weight:600;text-transform:none;display:none">✓ preenchida automaticamente</span></label><input type="text" id="fPix" value="'+escHtml(cf[F.cob.pix]||assPix)+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
-      '<div class="full"><label><input type="checkbox" id="fPago"'+(pago?' checked':'')+'> Já foi pago (marque só depois de confirmar o pagamento)</label></div>'+
+      (isDividido?
+        '<div class="full"><label>Valor Total Combinado (R$)</label><input type="number" step="0.01" id="fValorTotal" value="'+valorTotalAtual+'"></div>'+
+        '<div class="full"><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+(cf['fld017hwmpf88pMf4']||hoje)+'"></div>'+
+        '<div class="full"><label>Tipo</label><select id="fTipopg">'+tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+'</select></div>'+
+        '<div class="full"><label>Chave PIX <span id="pixHint" style="color:#22a06b;font-weight:600;text-transform:none;display:none">✓ preenchida automaticamente</span></label><input type="text" id="fPix" value="'+escHtml(pixAtualDiv)+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
+        '<div class="full" style="border:1px solid #e0eaf1;border-radius:6px;padding:12px;margin-top:4px">'+
+          '<h3 style="font-size:13px;color:#005F88;margin-bottom:8px">1ª Parcela (Inicial)</h3>'+
+          '<div class="fg">'+
+            '<div><label>Valor (R$)</label><input type="number" step="0.01" id="fValorIni" value="'+valorIniAtual+'"></div>'+
+            '<div><label>Data do Pagamento</label><input type="date" id="fDataPagIni" value="'+dataPagIniAtual+'"></div>'+
+            '<div class="full"><label><input type="checkbox" id="fPagoIni"'+(pagoIni?' checked':'')+'> Já foi paga</label></div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="full" style="border:1px solid #e0eaf1;border-radius:6px;padding:12px;margin-top:4px">'+
+          '<h3 style="font-size:13px;color:#005F88;margin-bottom:8px">2ª Parcela (Final)</h3>'+
+          '<div class="fg">'+
+            '<div><label>Valor (R$)</label><input type="number" step="0.01" id="fValorFin" value="'+valorFinAtual+'"></div>'+
+            '<div><label>Data do Pagamento</label><input type="date" id="fDataPagFin" value="'+dataPagFinAtual+'"></div>'+
+            '<div class="full"><label><input type="checkbox" id="fPagoFin"'+(pagoFin?' checked':'')+'> Já foi paga</label></div>'+
+          '</div>'+
+        '</div>'
+      :
+        '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
+        '<div><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+(cf['fld017hwmpf88pMf4']||hoje)+'"></div>'+
+        '<div><label>Data do Pagamento</label><input type="date" id="fDataPag" value="'+(cf[F.cob.dataPag]||'')+'"></div>'+
+        '<div class="full"><label>Tipo</label><select id="fTipopg">'+
+          tipopgOpts.map(t=>'<option'+(tipopgAtual===t?' selected':'')+'>'+t+'</option>').join('')+
+        '</select></div>'+
+        '<div class="full"><label>Chave PIX <span id="pixHint" style="color:#22a06b;font-weight:600;text-transform:none;display:none">✓ preenchida automaticamente</span></label><input type="text" id="fPix" value="'+escHtml(cf[F.cob.pix]||assPix)+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
+        '<div class="full"><label><input type="checkbox" id="fPago"'+(pago?' checked':'')+'> Já foi pago (marque só depois de confirmar o pagamento)</label></div>'
+      )+
     '</div>'+
     '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">'+(isEdit?'Salvar':'Registrar Solicitação')+'</button></div>';
   document.getElementById('modalHost').appendChild(bg);bg.appendChild(m);
@@ -1186,13 +1241,17 @@ function openCobrancaModal(prazoRec,existingCob){
   });
   assSlot.appendChild(assSearch);
 
-  m.querySelector('#sv').onclick=async()=>{
-    const valor=parseFloat(m.querySelector('#fValor').value);
-    if(isNaN(valor)||valor<=0){msgEl.textContent='Valor é obrigatório';msgEl.className='msg err';return;}
-    const pixVal=pixInp.value.trim();
-    const selectedAssId=assSearch.getValue()||(currentAss?currentAss.id:'');
+  // Auto-cálculo das parcelas (modo dividido)
+  if(isDividido){
+    const totalInp=m.querySelector('#fValorTotal');
+    const iniInp=m.querySelector('#fValorIni');
+    const finInp=m.querySelector('#fValorFin');
+    totalInp.oninput=()=>{const t=parseFloat(totalInp.value)||0;iniInp.value=(t/2).toFixed(2);finInp.value=(t/2).toFixed(2);};
+    iniInp.oninput=()=>{const t=parseFloat(totalInp.value)||0;const i=parseFloat(iniInp.value)||0;finInp.value=Math.max(0,t-i).toFixed(2);};
+    finInp.oninput=()=>{const t=parseFloat(totalInp.value)||0;const f=parseFloat(finInp.value)||0;iniInp.value=Math.max(0,t-f).toFixed(2);};
+  }
 
-    // Auto-save PIX no cadastro do assistente se ele ainda não tem
+  async function savePixAndAssistente(selectedAssId,pixVal){
     if(selectedAssId&&pixVal){
       const assRec=ASSIST_BY_ID[selectedAssId];
       if(assRec&&!assRec.fields[F.a.pix]){
@@ -1203,8 +1262,6 @@ function openCobrancaModal(prazoRec,existingCob){
         }catch(e){console.warn('PIX assist save failed',e);}
       }
     }
-
-    // Se assistente mudou, atualiza o link no prazo
     const prazoAssIds=(prazoRec.fields[F.p.assistente]||[]);
     if(selectedAssId&&!prazoAssIds.includes(selectedAssId)){
       try{
@@ -1217,6 +1274,62 @@ function openCobrancaModal(prazoRec,existingCob){
         prazoRec.fields[F.p.assistente]=[];
       }catch(e){}
     }
+  }
+
+  m.querySelector('#sv').onclick=async()=>{
+    const pixVal=pixInp.value.trim();
+    const selectedAssId=assSearch.getValue()||(currentAss?currentAss.id:'');
+
+    if(isDividido){
+      const valorTotal=parseFloat(m.querySelector('#fValorTotal').value);
+      const valorIni=parseFloat(m.querySelector('#fValorIni').value);
+      const valorFin=parseFloat(m.querySelector('#fValorFin').value);
+      const dataSol=m.querySelector('#fDataSol').value;
+      const dataPagIni=m.querySelector('#fDataPagIni').value;
+      const dataPagFin=m.querySelector('#fDataPagFin').value;
+      const pagoIniNew=m.querySelector('#fPagoIni').checked;
+      const pagoFinNew=m.querySelector('#fPagoFin').checked;
+
+      if(isNaN(valorTotal)||valorTotal<=0){msgEl.textContent='Valor total é obrigatório';msgEl.className='msg err';return;}
+
+      try{await patchRecord(TBL.prazos,prazoRec.id,{[F.p.valorAss]:valorTotal});prazoRec.fields[F.p.valorAss]=valorTotal;}catch(e){}
+      await savePixAndAssistente(selectedAssId,pixVal);
+
+      const baseFields={[F.cob.tipo]:'Saída',[F.cob.categoria]:'Custo Direto (Assistente)',[F.cob.tipopg]:tipopgSel.value};
+      if(pixVal)baseFields[F.cob.pix]=pixVal;
+      if(dataSol)baseFields['fld017hwmpf88pMf4']=dataSol;
+
+      try{
+        const fieldsIni={...baseFields,[F.cob.tipoPagamento]:['50% Iniciais'],[F.cob.valorPag]:valorIni,[F.cob.pago]:pagoIniNew};
+        if(dataPagIni)fieldsIni[F.cob.dataPag]=dataPagIni;
+        if(cobIni){
+          await patchRecord(TBL.cob,cobIni.id,fieldsIni);
+        }else{
+          fieldsIni[F.cob.caso]=[casoId];
+          fieldsIni[F.cob.prazos]=[prazoRec.id];
+          if(selectedAssId)fieldsIni[F.cob.assistente]=[selectedAssId];
+          await createRecord(TBL.cob,fieldsIni);
+        }
+
+        const fieldsFin={...baseFields,[F.cob.tipoPagamento]:['50% Finais'],[F.cob.valorPag]:valorFin,[F.cob.pago]:pagoFinNew};
+        if(dataPagFin)fieldsFin[F.cob.dataPag]=dataPagFin;
+        if(cobFin){
+          await patchRecord(TBL.cob,cobFin.id,fieldsFin);
+        }else{
+          fieldsFin[F.cob.caso]=[casoId];
+          fieldsFin[F.cob.prazos]=[prazoRec.id];
+          if(selectedAssId)fieldsFin[F.cob.assistente]=[selectedAssId];
+          await createRecord(TBL.cob,fieldsFin);
+        }
+
+        toast('Solicitação salva (pagamento dividido)','ok');close();loadData();
+      }catch(e){msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';}
+      return;
+    }
+
+    const valor=parseFloat(m.querySelector('#fValor').value);
+    if(isNaN(valor)||valor<=0){msgEl.textContent='Valor é obrigatório';msgEl.className='msg err';return;}
+    await savePixAndAssistente(selectedAssId,pixVal);
 
     const fields={};
     fields[F.cob.tipo]='Saída';
@@ -1229,13 +1342,13 @@ function openCobrancaModal(prazoRec,existingCob){
     if(dataPag)fields[F.cob.dataPag]=dataPag;
     if(pixVal)fields[F.cob.pix]=pixVal;
     fields[F.cob.pago]=m.querySelector('#fPago').checked;
-    if(!isEdit){
+    if(!existingCob){
       fields[F.cob.caso]=[casoId];
       fields[F.cob.prazos]=[prazoRec.id];
       if(selectedAssId)fields[F.cob.assistente]=[selectedAssId];
     }
     try{
-      if(isEdit){
+      if(existingCob){
         await patchRecord(TBL.cob,existingCob.id,fields);
       }else{
         await createRecord(TBL.cob,fields);
@@ -1289,7 +1402,33 @@ function openRemarcacaoModal(r){
       if(cidade)fields[F.p.cidade]=cidade;
       if(obs)fields[F.p.obs]='Remarcação de perícia anterior. '+obs;
       else fields[F.p.obs]='Remarcação de perícia anterior.';
-      await createRecord(TBL.prazos,fields);
+      const novaPrazo=await createRecord(TBL.prazos,fields);
+
+      // 3) Pagamento dividido: se nenhuma parcela foi paga, recria as 2 cobranças na nova perícia
+      const cobLinks=r.fields[F.p.cobrancas]||[];
+      const cobsLinked=cobLinks.map(cid=>(DATA.cobs||[]).find(c=>c.id===cid)).filter(Boolean);
+      const ehIni=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/inicia/i.test(typeof x==='object'?x.name:x));};
+      const ehFin=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/final/i.test(typeof x==='object'?x.name:x));};
+      const cIni=cobsLinked.find(ehIni);
+      const cFin=cobsLinked.find(ehFin);
+      if(cIni&&cFin){
+        const iniPaga=!!cIni.fields[F.cob.pago];
+        const finPaga=!!cFin.fields[F.cob.pago];
+        if(!iniPaga&&!finPaga){
+          const assIds=cIni.fields[F.cob.assistente]||cFin.fields[F.cob.assistente]||[];
+          const pixVal=cIni.fields[F.cob.pix]||cFin.fields[F.cob.pix]||'';
+          const vIni=cIni.fields[F.cob.valorPag]||0;
+          const vFin=cFin.fields[F.cob.valorPag]||0;
+          try{await deleteRecord(TBL.cob,cIni.id);}catch(e){}
+          try{await deleteRecord(TBL.cob,cFin.id);}catch(e){}
+          const base={[F.cob.tipo]:'Saída',[F.cob.categoria]:'Custo Direto (Assistente)',[F.cob.tipopg]:'Assistente Técnico (remarcação)',[F.cob.caso]:[casoId],[F.cob.prazos]:[novaPrazo.id]};
+          if(assIds.length)base[F.cob.assistente]=assIds;
+          if(pixVal)base[F.cob.pix]=pixVal;
+          await createRecord(TBL.cob,{...base,[F.cob.tipoPagamento]:['50% Iniciais'],[F.cob.valorPag]:vIni,[F.cob.pago]:false});
+          await createRecord(TBL.cob,{...base,[F.cob.tipoPagamento]:['50% Finais'],[F.cob.valorPag]:vFin,[F.cob.pago]:false});
+        }
+        // Demais cenários (1 paga, ambas pagas, taxa de remarcação): não implementado aqui
+      }
       toast('Perícia remarcada — nova criada','ok');
       close();loadData();
     }catch(e){msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';}
