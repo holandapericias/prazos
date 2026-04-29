@@ -362,7 +362,9 @@ function filterPrazosRange(deIso,ateIso){
 }
 // Pós-perícia: perícias dos últimos 30 dias, não remarcadas
 function filterPosPericia(){
-  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATEADD(TODAY(),-30,'days')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+  // Sem janela de 30 dias: perícias antigas pendentes (sem relatório, sem pagamento ou
+  // sem confirmação se aconteceu) ficam na lista até serem resolvidas.
+  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
 }
 
 async function loadData(){
@@ -481,19 +483,87 @@ function updatePosPericiaBadge(){
   if(!b)return;
   if(n>0){b.textContent=n;b.style.display='inline-block';}else b.style.display='none';
 }
+// Status pendentes de uma pós-perícia. Se nenhum estiver pendente, ela "saiu da lista".
+// Retorna {realizou, pago, relatorio} — true = pendente.
+function classifyPosPericia(p){
+  const finalizado=!!p.fields[F.p.finalizado];
+  const realizada=!!p.fields[F.p.realizada];
+  const cobLinks=p.fields[F.p.cobrancas]||[];
+  const cobs=cobLinks.map(cid=>(DATA.cobs||[]).find(x=>x.id===cid)).filter(Boolean);
+  const allPaid=cobs.length>0&&cobs.every(c=>c.fields[F.cob.pago]);
+  const relatorio=!!p.fields[F.p.relatorioPos];
+  // Se a perícia não aconteceu, relatório e pagamento não se aplicam.
+  const naoAconteceu=finalizado&&!realizada;
+  return {
+    realizouPend:!finalizado,
+    pagoPend:!naoAconteceu&&!allPaid,
+    relatorioPend:!naoAconteceu&&!relatorio
+  };
+}
+
 function getPosPericiasAtivas(){
-  // Retorna pós-perícias ativas: não remarcadas, e não tem pagamento ao assistente quitado
+  // Pós-perícia "ativa" = pelo menos um pendente entre: realizou? / pago / relatório
   return (DATA.posPericias||[]).filter(p=>{
     if(p.fields[F.p.remarc])return false;
-    const cobLinks=p.fields[F.p.cobrancas]||[];
-    if(cobLinks.length){
-      const allPaid=cobLinks.every(cid=>{
-        const c=(DATA.cobs||[]).find(x=>x.id===cid);
-        return c&&c.fields[F.cob.pago];
-      });
-      if(allPaid)return false;
-    }
-    return true;
+    const c=classifyPosPericia(p);
+    return c.realizouPend||c.pagoPend||c.relatorioPend;
+  });
+}
+
+// Estado dos filtros da seção pós-perícia
+const POS_FILTERS={q:'',tempo:'all',status:'all',mode:'and'};
+
+function diasDesde(iso){
+  if(!iso)return 0;
+  const d=new Date(iso);const n=new Date();
+  return Math.floor((n-d)/(1000*60*60*24));
+}
+
+function matchTempoFilter(p,bucket){
+  if(bucket==='all')return true;
+  const dias=diasDesde(p.fields[F.p.data]);
+  if(bucket==='lt30')return dias<30;
+  if(bucket==='30to60')return dias>=30&&dias<60;
+  if(bucket==='60to90')return dias>=60&&dias<90;
+  if(bucket==='gt90')return dias>=90;
+  return true;
+}
+
+function matchStatusFilter(p,status){
+  if(status==='all')return true;
+  const c=classifyPosPericia(p);
+  if(status==='realizou_pend')return c.realizouPend;
+  if(status==='pago_sem_relatorio')return !c.realizouPend&&!c.pagoPend&&c.relatorioPend;
+  if(status==='relatorio_sem_pago')return !c.realizouPend&&!c.relatorioPend&&c.pagoPend;
+  if(status==='nada')return !c.realizouPend&&c.pagoPend&&c.relatorioPend;
+  return true;
+}
+
+function matchSearchFilter(p,q){
+  if(!q)return true;
+  const ql=q.toLowerCase().trim();
+  const fields=[
+    casoNome(p),
+    casoProcesso(p)
+  ];
+  const caso=CASO_BY_ID[(p.fields[F.p.caso]||[])[0]];
+  if(caso){
+    const cli=caso.fields[F.c.cliente];
+    if(cli)fields.push(Array.isArray(cli)?cli.join(' '):String(cli));
+  }
+  return fields.some(s=>String(s||'').toLowerCase().includes(ql));
+}
+
+function applyPosFilters(items){
+  const f=POS_FILTERS;
+  return items.filter(p=>{
+    if(!matchSearchFilter(p,f.q))return false;
+    const tempoOk=matchTempoFilter(p,f.tempo);
+    const statusOk=matchStatusFilter(p,f.status);
+    if(f.tempo==='all'&&f.status==='all')return true;
+    if(f.tempo==='all')return statusOk;
+    if(f.status==='all')return tempoOk;
+    return f.mode==='or'?(tempoOk||statusOk):(tempoOk&&statusOk);
   });
 }
 
@@ -993,13 +1063,60 @@ function buildPericiaBox(r){
 // ===== RENDER PÓS-PERÍCIA =====
 function renderPosPericia(){
   const wrap=document.createElement('div');
-  const items=getPosPericiasAtivas().slice().sort((a,b)=>new Date(b.fields[F.p.data])-new Date(a.fields[F.p.data]));
+  const all=getPosPericiasAtivas().slice().sort((a,b)=>new Date(b.fields[F.p.data])-new Date(a.fields[F.p.data]));
+  const items=applyPosFilters(all);
   const sec=document.createElement('div');sec.className='section';
-  sec.innerHTML='<h2>Pós-Perícia <span class="cnt">'+items.length+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(perícias aguardando fechamento ou cobrança)</span></h2>'+
-    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:14px">Perícias que já aconteceram (ou deveriam ter acontecido). Aqui você marca se aconteceu, adiciona comentários do assistente, marca o relatório, e gera a cobrança. Quando a cobrança for marcada como paga, a perícia sai desta lista.</div>';
-  if(!items.length){sec.innerHTML+='<div class="empty">Nenhuma perícia pendente de pós-processamento.</div>';wrap.appendChild(sec);return wrap;}
-  items.forEach(r=>sec.appendChild(buildPosPericiaCard(r)));
+  const cntTxt=items.length===all.length?String(all.length):items.length+' / '+all.length;
+  const showModeToggle=POS_FILTERS.tempo!=='all'&&POS_FILTERS.status!=='all';
+  sec.innerHTML='<h2>Pós-Perícia <span class="cnt">'+cntTxt+'</span> <span style="font-size:12px;color:#6b7c8c;font-weight:400;text-transform:none">(perícias aguardando fechamento ou cobrança)</span></h2>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:12px">Perícias que já aconteceram (ou deveriam ter acontecido). Aqui você marca se aconteceu, adiciona comentários do assistente, marca o relatório, e gera a cobrança. Quando tudo estiver concluído, a perícia sai desta lista.</div>'+
+    '<div class="pos-filters" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#f8fbfd;border:1px solid #e0eaf1;border-radius:8px;padding:10px 12px;margin-bottom:14px">'+
+      '<input type="search" id="ppQ" placeholder="🔍 Buscar por caso, cliente ou processo..." value="'+escHtml(POS_FILTERS.q)+'" style="flex:1;min-width:220px;padding:7px 10px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;background:#fff">'+
+      '<label style="font-size:12px;color:#6b7c8c">Tempo: <select id="ppTempo" style="padding:6px 8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;background:#fff">'+
+        '<option value="all"'+(POS_FILTERS.tempo==='all'?' selected':'')+'>Tudo</option>'+
+        '<option value="lt30"'+(POS_FILTERS.tempo==='lt30'?' selected':'')+'>&lt; 30 dias</option>'+
+        '<option value="30to60"'+(POS_FILTERS.tempo==='30to60'?' selected':'')+'>30–60 dias</option>'+
+        '<option value="60to90"'+(POS_FILTERS.tempo==='60to90'?' selected':'')+'>60–90 dias</option>'+
+        '<option value="gt90"'+(POS_FILTERS.tempo==='gt90'?' selected':'')+'>&gt; 90 dias</option>'+
+      '</select></label>'+
+      '<label style="font-size:12px;color:#6b7c8c">Status: <select id="ppStatus" style="padding:6px 8px;border:1px solid #cdd9e3;border-radius:5px;font-family:inherit;font-size:13px;background:#fff">'+
+        '<option value="all"'+(POS_FILTERS.status==='all'?' selected':'')+'>Tudo</option>'+
+        '<option value="realizou_pend"'+(POS_FILTERS.status==='realizou_pend'?' selected':'')+'>⏳ Aguardando confirmação</option>'+
+        '<option value="pago_sem_relatorio"'+(POS_FILTERS.status==='pago_sem_relatorio'?' selected':'')+'>💰 Pago, sem relatório</option>'+
+        '<option value="relatorio_sem_pago"'+(POS_FILTERS.status==='relatorio_sem_pago'?' selected':'')+'>📄 Com relatório, sem pagamento</option>'+
+        '<option value="nada"'+(POS_FILTERS.status==='nada'?' selected':'')+'>❌ Sem relatório e sem pagamento</option>'+
+      '</select></label>'+
+      (showModeToggle?
+        '<div style="display:inline-flex;border:1px solid #cdd9e3;border-radius:5px;overflow:hidden;font-size:12px">'+
+          '<button id="ppModeAnd" style="padding:6px 10px;border:0;background:'+(POS_FILTERS.mode==='and'?'#00AEEF':'#fff')+';color:'+(POS_FILTERS.mode==='and'?'#fff':'#005F88')+';font-weight:600;cursor:pointer">E</button>'+
+          '<button id="ppModeOr" style="padding:6px 10px;border:0;background:'+(POS_FILTERS.mode==='or'?'#00AEEF':'#fff')+';color:'+(POS_FILTERS.mode==='or'?'#fff':'#005F88')+';font-weight:600;cursor:pointer;border-left:1px solid #cdd9e3">OU</button>'+
+        '</div>'
+      :'')+
+      ((POS_FILTERS.q||POS_FILTERS.tempo!=='all'||POS_FILTERS.status!=='all')?
+        '<button id="ppClear" class="btn sm gray" style="padding:6px 10px">Limpar</button>'
+      :'')+
+    '</div>';
+  if(!all.length){
+    sec.innerHTML+='<div class="empty">Nenhuma perícia pendente de pós-processamento.</div>';
+  }else if(!items.length){
+    sec.innerHTML+='<div class="empty" style="padding:20px;text-align:center;color:#6b7c8c">Nenhuma perícia bate com os filtros aplicados.</div>';
+  }else{
+    items.forEach(r=>sec.appendChild(buildPosPericiaCard(r)));
+  }
   wrap.appendChild(sec);
+  // Wire filters
+  const reRender=()=>render();
+  const qInp=sec.querySelector('#ppQ');
+  let qTimer=0;
+  qInp.oninput=()=>{
+    clearTimeout(qTimer);
+    qTimer=setTimeout(()=>{POS_FILTERS.q=qInp.value;reRender();const f=document.getElementById('ppQ');if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length);}},200);
+  };
+  sec.querySelector('#ppTempo').onchange=e=>{POS_FILTERS.tempo=e.target.value;reRender();};
+  sec.querySelector('#ppStatus').onchange=e=>{POS_FILTERS.status=e.target.value;reRender();};
+  const mAnd=sec.querySelector('#ppModeAnd');if(mAnd)mAnd.onclick=()=>{POS_FILTERS.mode='and';reRender();};
+  const mOr=sec.querySelector('#ppModeOr');if(mOr)mOr.onclick=()=>{POS_FILTERS.mode='or';reRender();};
+  const cl=sec.querySelector('#ppClear');if(cl)cl.onclick=()=>{POS_FILTERS.q='';POS_FILTERS.tempo='all';POS_FILTERS.status='all';reRender();};
   return wrap;
 }
 function buildPosPericiaCard(r){
