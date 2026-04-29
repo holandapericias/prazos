@@ -362,9 +362,11 @@ function filterPrazosRange(deIso,ateIso){
 }
 // Pós-perícia: perícias dos últimos 30 dias, não remarcadas
 function filterPosPericia(){
-  // Sem janela de 30 dias: perícias antigas pendentes (sem relatório, sem pagamento ou
-  // sem confirmação se aconteceu) ficam na lista até serem resolvidas.
-  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+  // Piso fixo: 11/03/2026 (30 dias antes da data em que o sistema passou a registrar
+  // pós-perícia). Perícias anteriores a esse marco não devem aparecer mesmo se
+  // tecnicamente "pendentes". Sem teto: perícias antigas pendentes ficam na lista
+  // até serem resolvidas.
+  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATETIME_PARSE('2026-03-11')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
 }
 
 async function loadData(){
