@@ -775,7 +775,13 @@ function renderLista(opts){
       'value="'+escHtml(PASSADOS.search)+'" style="flex:1;min-width:200px">'+
       (PASSADOS.search?'<button class="btn sm gray" id="dClear">✕ Limpar</button>':'');
     sec.appendChild(searchBar);
-    searchBar.querySelector('#dSearch').oninput=e=>{PASSADOS.search=e.target.value;render();};
+    searchBar.querySelector('#dSearch').oninput=e=>{
+      const pos=e.target.selectionStart;
+      PASSADOS.search=e.target.value;
+      render();
+      const inp=document.getElementById('dSearch');
+      if(inp){inp.focus();try{inp.setSelectionRange(pos,pos);}catch(_){}}
+    };
     const clrBtn=searchBar.querySelector('#dClear');
     if(clrBtn)clrBtn.onclick=()=>{PASSADOS.search='';render();};
     const apply=(de,ate)=>{PASSADOS.de=de;PASSADOS.ate=ate;PASSADOS.loaded=de+'|'+ate;loadPassados(de,ate);};
