@@ -370,7 +370,9 @@ function filterPosPericia(){
   // OBS: o flag {Pericia remarcada?} indica que a perícia veio de um reagendamento,
   // não que foi cancelada — portanto não excluímos por ele. Registros antigos finalizados
   // por remarcação são naturalmente excluídos pelo filtro client-side de classifyPosPericia.
-  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATETIME_PARSE('2026-03-11')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+  // FIND no lugar de igualdade: {Tipo de Prazos} é multi-select; "=Perícia" só bate quando
+  // é o único valor. FIND('Perícia',...) cobre casos com múltiplos tipos (ex: ["Perícia","Enviar Pré-laudo"]).
+  return "AND(FIND(\"Perícia\",{Tipo de Prazos}),NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATETIME_PARSE('2026-03-11')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
 }
 
 async function loadData(){
@@ -512,7 +514,12 @@ function getPosPericiasAtivas(){
   // OBS: não excluímos por F.p.remarc — esse flag indica que a perícia foi remarcada
   // alguma vez, não que ela é inválida. Registros antigos finalizados por remarcação
   // são naturalmente filtrados por classifyPosPericia (finalizado+!realizada => naoAconteceu).
+  // Tipo de Prazos é multi-select: aceitamos qualquer registro que CONTENHA "Perícia"
+  // (ex: ["Perícia","Enviar Pré-laudo"]).
   return (DATA.posPericias||[]).filter(p=>{
+    const tipos=p.fields[F.p.tipo];
+    const arr=Array.isArray(tipos)?tipos:(tipos?[tipos]:[]);
+    if(!arr.some(t=>String(t).indexOf('Perícia')>=0))return false;
     const c=classifyPosPericia(p);
     return c.realizouPend||c.pagoPend||c.relatorioPend;
   });
