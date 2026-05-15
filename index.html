@@ -360,13 +360,17 @@ function filterPrazosAtuais(){
 function filterPrazosRange(deIso,ateIso){
   return "AND(NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},'"+deIso+"'),IS_BEFORE({Data da Perícia},'"+ateIso+"'))";
 }
-// Pós-perícia: perícias dos últimos 30 dias, não remarcadas
+// Pós-perícia: perícias dentro da janela de data, ativas (com pendências em
+// realizou?/pagamento/relatório). Não excluímos por "Pericia remarcada?".
 function filterPosPericia(){
   // Piso fixo: 11/03/2026 (30 dias antes da data em que o sistema passou a registrar
   // pós-perícia). Perícias anteriores a esse marco não devem aparecer mesmo se
   // tecnicamente "pendentes". Sem teto: perícias antigas pendentes ficam na lista
   // até serem resolvidas.
-  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),NOT({Pericia remarcada?}),IS_AFTER({Data da Perícia},DATETIME_PARSE('2026-03-11')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
+  // OBS: o flag {Pericia remarcada?} indica que a perícia veio de um reagendamento,
+  // não que foi cancelada — portanto não excluímos por ele. Registros antigos finalizados
+  // por remarcação são naturalmente excluídos pelo filtro client-side de classifyPosPericia.
+  return "AND({Tipo de Prazos}=\"Perícia\",NOT({Situação}=\"Arquivado\"),IS_AFTER({Data da Perícia},DATETIME_PARSE('2026-03-11')),IS_BEFORE({Data da Perícia},DATEADD(TODAY(),1,'days')))";
 }
 
 async function loadData(){
@@ -505,8 +509,10 @@ function classifyPosPericia(p){
 
 function getPosPericiasAtivas(){
   // Pós-perícia "ativa" = pelo menos um pendente entre: realizou? / pago / relatório
+  // OBS: não excluímos por F.p.remarc — esse flag indica que a perícia foi remarcada
+  // alguma vez, não que ela é inválida. Registros antigos finalizados por remarcação
+  // são naturalmente filtrados por classifyPosPericia (finalizado+!realizada => naoAconteceu).
   return (DATA.posPericias||[]).filter(p=>{
-    if(p.fields[F.p.remarc])return false;
     const c=classifyPosPericia(p);
     return c.realizouPend||c.pagoPend||c.relatorioPend;
   });
