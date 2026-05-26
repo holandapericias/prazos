@@ -1042,6 +1042,11 @@ function buildPericiaBox(r){
           ?'<a href="https://holandapericias.github.io/prelaudo/?'+params+'" target="_blank" class="btn sm green" style="text-decoration:none">✓ Pré-Laudo Gerado · refazer</a>'
           :'<a href="https://holandapericias.github.io/prelaudo/?'+params+'" target="_blank" class="btn sm" style="background:#2196F3;text-decoration:none">📝 Gerar Pré-Laudo</a>';
       })()+
+      '<button class="btn sm" style="background:#E8A838;color:#fff" data-act="adiantamento">💰 Assistente pede pagamento antecipado</button>'+
+      (()=>{
+        const tot=somaAdiantamentos(r.id);
+        return tot>0?'<span class="tag t-quesitos" title="Adiantamento(s) já registrado(s) para este prazo">💰 Adiantado R$ '+tot.toFixed(2)+'</span>':'';
+      })()+
       '<button class="btn sm orange" data-act="remarcada">↻ Remarcar</button>'+
     '</div>'+
     '<div class="foot" style="margin-top:10px"><span class="msg"></span></div>';
@@ -1073,6 +1078,8 @@ function buildPericiaBox(r){
     };
   });
   body.querySelector('[data-act=remarcada]').onclick=()=>openRemarcacaoModal(r);
+  const adiantBtn=body.querySelector('[data-act=adiantamento]');
+  if(adiantBtn)adiantBtn.onclick=()=>openAdiantamentoModal(r);
   // HEAD actions
   head.querySelector('[data-act=del]').onclick=e=>{e.stopPropagation();confirmDelete(r);};
   const toggle=()=>{PERICIA_EXPANDED[r.id]=!PERICIA_EXPANDED[r.id];render();};
@@ -1263,6 +1270,118 @@ function lookupPixAssistente(assRec){
   return'';
 }
 
+// Identifica cob de adiantamento ao assistente (pré-perícia)
+function ehAdiantamento(co){
+  const t=co.fields[F.cob.tipoPagamento]||[];
+  const arr=Array.isArray(t)?t:[t];
+  return arr.some(x=>{
+    const s=typeof x==='object'?x.name:x;
+    return /adiantamento/i.test(String(s||''));
+  });
+}
+// Adiantamentos linkados a um prazo
+function findAdiantamentosByPrazo(prazoId){
+  return (DATA.cobs||[]).filter(c=>{
+    const links=c.fields[F.cob.prazos]||[];
+    return links.includes(prazoId)&&ehAdiantamento(c);
+  });
+}
+function somaAdiantamentos(prazoId){
+  return findAdiantamentosByPrazo(prazoId)
+    .reduce((s,c)=>s+(parseFloat(c.fields[F.cob.valorPag])||0),0);
+}
+
+// ===== MODAL ADIANTAMENTO AO ASSISTENTE (SAÍDA, antes da perícia) =====
+function openAdiantamentoModal(prazoRec){
+  const bg=document.createElement('div');bg.className='modal-bg';
+  const m=document.createElement('div');m.className='modal';
+  const link=prazoRec.fields[F.p.caso]||[];
+  const casoId=link[0]||'';
+  const ass=assistFromPrazo(prazoRec);
+  const assPix=lookupPixAssistente(ass);
+  const valorAss=prazoRec.fields[F.p.valorAss]||'';
+  const hoje=todayKey();
+  const adiantados=findAdiantamentosByPrazo(prazoRec.id);
+  const totalJaAdiantado=adiantados.reduce((s,c)=>s+(parseFloat(c.fields[F.cob.valorPag])||0),0);
+  m.innerHTML='<h2>💰 Adiantamento ao Assistente</h2>'+
+    '<div style="font-size:12px;color:#6b7c8c;margin-bottom:6px">Caso: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
+    '<div style="font-size:13px;color:#6b7c8c;margin-bottom:12px">Gera uma saída financeira para o pagamento antecipado. No pós-perícia, esse valor será descontado do total combinado com o assistente.</div>'+
+    (adiantados.length?'<div style="background:#fff8e1;border-left:4px solid #E8A838;padding:10px 12px;margin-bottom:12px;border-radius:4px;font-size:13px;color:#003c56">⚠️ Já existem <b>'+adiantados.length+'</b> adiantamento(s) deste prazo somando <b>R$ '+totalJaAdiantado.toFixed(2)+'</b>.</div>':'')+
+    '<div class="fg">'+
+      '<div class="full"><label>Assistente Técnico</label><div id="aAssSlot"></div></div>'+
+      '<div><label>Valor Total Combinado (R$)</label><input type="number" step="0.01" id="fValorTotal" value="'+(valorAss||'')+'" placeholder="Total previsto"></div>'+
+      '<div><label>Valor do Adiantamento (R$) *</label><input type="number" step="0.01" id="fValorAdiant" placeholder="Quanto pagar agora"></div>'+
+      '<div class="full"><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+hoje+'"></div>'+
+      '<div class="full"><label>Chave PIX <span id="pixHint" style="color:#22a06b;font-weight:600;text-transform:none;display:none">✓ preenchida automaticamente</span></label><input type="text" id="fPix" value="'+escHtml(assPix||'')+'" placeholder="CPF, telefone, email ou chave aleatória"></div>'+
+    '</div>'+
+    '<div class="foot"><span class="msg"></span><button class="btn gray" id="cl">Cancelar</button><button class="btn green" id="sv">Registrar Adiantamento</button></div>';
+  document.getElementById('modalHost').appendChild(bg);bg.appendChild(m);
+  const close=()=>bg.remove();
+  m.querySelector('#cl').onclick=close;
+  bg.onclick=e=>{if(e.target===bg)close();};
+  const msgEl=m.querySelector('.msg');
+  const pixInp=m.querySelector('#fPix');
+  const pixHint=m.querySelector('#pixHint');
+  if(assPix)pixHint.style.display='inline';
+  pixInp.oninput=()=>{pixHint.style.display='none';};
+
+  // Plugar busca de assistente
+  let currentAss=ass;
+  const assSearch=buildAssistenteSearch({
+    currentId:ass?ass.id:'',
+    onPick:(newAss)=>{currentAss=newAss;const px=lookupPixAssistente(newAss);if(px&&!pixInp.value){pixInp.value=px;pixHint.style.display='inline';}},
+    onClear:()=>{currentAss=null;}
+  });
+  m.querySelector('#aAssSlot').appendChild(assSearch);
+
+  m.querySelector('#sv').onclick=async()=>{
+    const valorTotal=parseFloat(m.querySelector('#fValorTotal').value);
+    const valorAdiant=parseFloat(m.querySelector('#fValorAdiant').value);
+    const dataSol=m.querySelector('#fDataSol').value;
+    const pixVal=pixInp.value.trim();
+    const selectedAssId=assSearch.getValue()||(currentAss?currentAss.id:'');
+    if(isNaN(valorAdiant)||valorAdiant<=0){msgEl.textContent='Valor do adiantamento é obrigatório';msgEl.className='msg err';return;}
+    if(!selectedAssId){msgEl.textContent='Selecione o assistente';msgEl.className='msg err';return;}
+    msgEl.textContent='Salvando...';msgEl.className='msg';
+    try{
+      // Atualiza Valor Combinado do prazo SE estava vazio
+      if(!prazoRec.fields[F.p.valorAss]&&!isNaN(valorTotal)&&valorTotal>0){
+        await patchRecord(TBL.prazos,prazoRec.id,{[F.p.valorAss]:valorTotal});
+        prazoRec.fields[F.p.valorAss]=valorTotal;
+      }
+      // Salva PIX no cadastro do assistente se ainda não tem
+      const assRec=ASSIST_BY_ID[selectedAssId];
+      if(assRec&&pixVal&&!assRec.fields[F.a.pix]){
+        try{await patchRecord(TBL.assist,selectedAssId,{[F.a.pix]:pixVal});assRec.fields[F.a.pix]=pixVal;}catch(_){}
+      }
+      // Garante que o assistente está linkado ao prazo
+      const prazoAssIds=(prazoRec.fields[F.p.assistente]||[]);
+      if(!prazoAssIds.includes(selectedAssId)){
+        try{await patchRecord(TBL.prazos,prazoRec.id,{[F.p.assistente]:[selectedAssId]});prazoRec.fields[F.p.assistente]=[selectedAssId];}catch(_){}
+      }
+      // Cria o cob de adiantamento (Saída pendente; pago=false; Gerlane registra, Tehol marca pago depois no dashboard financeiro)
+      const fields={};
+      fields[F.cob.tipo]='Saída';
+      fields[F.cob.categoria]='Custo Direto (Assistente)';
+      fields[F.cob.tipopg]='Assistente Técnico';
+      fields[F.cob.tipoPagamento]=['Adiantamento'];
+      fields[F.cob.valorPag]=valorAdiant;
+      fields[F.cob.pago]=false;
+      if(dataSol)fields['fld017hwmpf88pMf4']=dataSol;
+      if(pixVal)fields[F.cob.pix]=pixVal;
+      fields[F.cob.caso]=casoId?[casoId]:[];
+      fields[F.cob.prazos]=[prazoRec.id];
+      fields[F.cob.assistente]=[selectedAssId];
+      await createRecord(TBL.cob,fields);
+      toast('Adiantamento registrado','ok');
+      close();
+      loadData();
+    }catch(e){
+      msgEl.textContent='Erro: '+e.message;msgEl.className='msg err';
+    }
+  };
+}
+
 // ===== MODAL SOLICITAÇÃO DE PAGAMENTO AO ASSISTENTE (SAÍDA) =====
 function openCobrancaModal(prazoRec,existingCobs){
   existingCobs=Array.isArray(existingCobs)?existingCobs:(existingCobs?[existingCobs]:[]);
@@ -1279,10 +1398,14 @@ function openCobrancaModal(prazoRec,existingCobs){
   const isDividido=modelo==='Pagamento dividido';
   const ehInicial=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/inicia/i.test(typeof x==='object'?x.name:x));};
   const ehFinal=co=>{const t=co.fields[F.cob.tipoPagamento]||[];return t.some(x=>/final/i.test(typeof x==='object'?x.name:x));};
-  const cobIni=existingCobs.find(ehInicial);
-  const cobFin=existingCobs.find(ehFinal);
-  const cobUnica=(existingCobs.length===1&&!ehInicial(existingCobs[0])&&!ehFinal(existingCobs[0]))?existingCobs[0]:null;
-  const existingCob=cobUnica||existingCobs[0]||null;
+  // Adiantamentos sao tratados a parte (banner + abatimento), nao entram em cobIni/cobFin/existingCob
+  const adiantamentos=existingCobs.filter(ehAdiantamento);
+  const cobsNaoAdiant=existingCobs.filter(c=>!ehAdiantamento(c));
+  const totalAdiantado=adiantamentos.reduce((s,c)=>s+(parseFloat(c.fields[F.cob.valorPag])||0),0);
+  const cobIni=cobsNaoAdiant.find(ehInicial);
+  const cobFin=cobsNaoAdiant.find(ehFinal);
+  const cobUnica=(cobsNaoAdiant.length===1&&!ehInicial(cobsNaoAdiant[0])&&!ehFinal(cobsNaoAdiant[0]))?cobsNaoAdiant[0]:null;
+  const existingCob=cobUnica||cobsNaoAdiant[0]||null;
   const isEdit=isDividido?(!!cobIni||!!cobFin):!!existingCob;
   const cf=existingCob?existingCob.fields:{};
   const pago=existingCob?!!cf[F.cob.pago]:false;
@@ -1299,8 +1422,29 @@ function openCobrancaModal(prazoRec,existingCobs){
   const pagoIni=cobIni?!!cobIni.fields[F.cob.pago]:false;
   const pagoFin=cobFin?!!cobFin.fields[F.cob.pago]:false;
   const pixAtualDiv=(cobIni?.fields[F.cob.pix])||(cobFin?.fields[F.cob.pix])||assPix;
+  // Banner de adiantamentos previos (se houver)
+  const valorAssNum=parseFloat(valorAss)||0;
+  const restanteAposAdiant=Math.max(0,valorAssNum-totalAdiantado);
+  const adiantBanner=totalAdiantado>0?(
+    '<div style="background:#fff8e1;border-left:4px solid #E8A838;padding:12px 14px;margin-bottom:12px;border-radius:4px;font-size:13px;color:#003c56">'+
+      '<div style="font-weight:700;margin-bottom:6px;color:#7a5e0a">💰 Adiantamento(s) já solicitado(s)</div>'+
+      adiantamentos.map(c=>{
+        const v=parseFloat(c.fields[F.cob.valorPag])||0;
+        const ds=c.fields['fld017hwmpf88pMf4']||c.fields[F.cob.dataPag]||'';
+        const isPg=!!c.fields[F.cob.pago];
+        return '<div>• R$ '+v.toFixed(2)+(ds?' · solicitado em '+fmtDate(ds):'')+' · '+(isPg?'<span style="color:#22a06b;font-weight:600">já pago</span>':'<span style="color:#a86a00;font-weight:600">aguardando pagamento</span>')+'</div>';
+      }).join('')+
+      '<div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e8c468">'+
+        'Total adiantado: <b>R$ '+totalAdiantado.toFixed(2)+'</b>'+
+        (valorAssNum>0?' · Restante a cobrar (Valor Combinado − Adiantado): <b>R$ '+restanteAposAdiant.toFixed(2)+'</b>':'')+
+      '</div>'+
+    '</div>'
+  ):'';
+  // Single-mode: pre-preencher Valor a Pagar com o restante quando criar novo
+  const valorPagarDefault=cf[F.cob.valorPag]||(valorAssNum>0?restanteAposAdiant.toFixed(2):(valorAss||''));
   m.innerHTML='<h2>💸 '+(isEdit?'Editar Solicitação':'Solicitação de Pagamento')+(isDividido?' (Pagamento Dividido)':'')+'</h2>'+
     '<div style="font-size:12px;color:#6b7c8c;margin-bottom:6px">Caso: <b>'+escHtml(casoNome(prazoRec))+'</b></div>'+
+    adiantBanner+
     '<div class="fg">'+
       '<div class="full"><label>Assistente Técnico</label><div id="cAssSlot"></div></div>'+
       (isDividido?
@@ -1325,7 +1469,7 @@ function openCobrancaModal(prazoRec,existingCobs){
           '</div>'+
         '</div>'
       :
-        '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+(cf[F.cob.valorPag]||valorAss||'')+'"></div>'+
+        '<div><label>Valor a Pagar (R$)</label><input type="number" step="0.01" id="fValor" value="'+valorPagarDefault+'"></div>'+
         '<div><label>Data da Solicitação</label><input type="date" id="fDataSol" value="'+(cf['fld017hwmpf88pMf4']||hoje)+'"></div>'+
         '<div><label>Data do Pagamento</label><input type="date" id="fDataPag" value="'+(cf[F.cob.dataPag]||'')+'"></div>'+
         '<div class="full"><label>Tipo</label><select id="fTipopg">'+
@@ -1360,10 +1504,11 @@ function openCobrancaModal(prazoRec,existingCobs){
     }else{
       pixHint.style.display='none';
     }
-    // Pré-preencher valor combinado se vazio
+    // Pré-preencher valor combinado se vazio (desconta adiantamentos)
     const valorInp=m.querySelector('#fValor');
-    if(!valorInp.value&&prazoRec.fields[F.p.valorAss]){
-      valorInp.value=prazoRec.fields[F.p.valorAss];
+    if(valorInp&&!valorInp.value&&prazoRec.fields[F.p.valorAss]){
+      const tot=parseFloat(prazoRec.fields[F.p.valorAss])||0;
+      valorInp.value=Math.max(0,tot-totalAdiantado).toFixed(2);
     }
   }
   // Mostra hint se já veio com PIX preenchido auto
